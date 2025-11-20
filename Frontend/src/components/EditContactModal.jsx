@@ -24,7 +24,7 @@ function EditContactModal({ isOpen, onClose, contact, onContactUpdated }) {
     const updatedContact = { name, email, phone }
 
     try {
-      const response = await fetch(`http://127.0.0.1:5000/api/contacts/${contact.id}`, {
+      const response = await fetch(`https://job-application-tracker-3n97.onrender.com/api/contacts/${contact.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedContact),

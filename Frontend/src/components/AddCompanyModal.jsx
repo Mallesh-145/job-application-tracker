@@ -16,7 +16,7 @@ function AddCompanyModal({ isOpen, onClose, onCompanyAdded }) {
     const newCompany = { name, address, website_url: websiteUrl }
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/companies', {
+      const response = await fetch('https://job-application-tracker-3n97.onrender.com/api/companies', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

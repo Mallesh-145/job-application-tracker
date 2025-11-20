@@ -33,9 +33,9 @@ function CompanyPage() {
     const fetchData = async () => {
       try {
         const [companyRes, appsRes, contactsRes] = await Promise.all([
-          fetch(`http://127.0.0.1:5000/api/companies/${id}`),
-          fetch(`http://127.0.0.1:5000/api/companies/${id}/applications`),
-          fetch(`http://127.0.0.1:5000/api/companies/${id}/contacts`)
+          fetch(`https://job-application-tracker-3n97.onrender.com/api/companies/${id}`),
+          fetch(`https://job-application-tracker-3n97.onrender.com/api/companies/${id}/applications`),
+          fetch(`https://job-application-tracker-3n97.onrender.com/api/companies/${id}/contacts`)
         ])
 
         if (!companyRes.ok) throw new Error('Company not found')
@@ -61,13 +61,13 @@ function CompanyPage() {
   // --- Helper Functions ---
 
   const refreshApplications = async () => {
-    const res = await fetch(`http://127.0.0.1:5000/api/companies/${id}/applications`)
+    const res = await fetch(`https://job-application-tracker-3n97.onrender.com/api/companies/${id}/applications`)
     const data = await res.json()
     setApplications(data)
   }
 
   const refreshContacts = async () => {
-    const res = await fetch(`http://127.0.0.1:5000/api/companies/${id}/contacts`)
+    const res = await fetch(`https://job-application-tracker-3n97.onrender.com/api/companies/${id}/contacts`)
     const data = await res.json()
     setContacts(data)
   }
@@ -93,7 +93,7 @@ function CompanyPage() {
       return;
     }
     try {
-      const response = await fetch(`http://127.0.0.1:5000/api/applications/${applicationId}`, {
+      const response = await fetch(`https://job-application-tracker-3n97.onrender.com/api/applications/${applicationId}`, {
         method: 'DELETE',
       })
       if (response.ok) {
@@ -111,7 +111,7 @@ function CompanyPage() {
     if (!window.confirm("Delete this contact?")) return;
 
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/contacts/${contactId}`, {
+      const res = await fetch(`https://job-application-tracker-3n97.onrender.com/api/contacts/${contactId}`, {
         method: 'DELETE'
       })
       if (res.ok) {

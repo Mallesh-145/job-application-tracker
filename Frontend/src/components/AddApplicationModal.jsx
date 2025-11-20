@@ -24,7 +24,7 @@ function AddApplicationModal({ isOpen, onClose, companyId, onApplicationAdded })
     }
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/applications', {
+      const response = await fetch('https://job-application-tracker-3n97.onrender.com/api/applications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newApplication),

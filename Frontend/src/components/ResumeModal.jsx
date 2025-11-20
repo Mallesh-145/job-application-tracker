@@ -14,7 +14,7 @@ function ResumeModal({ isOpen, onClose, applicationId, jobTitle }) {
 
   const fetchResumes = async () => {
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/applications/${applicationId}/resumes`)
+      const res = await fetch(`https://job-application-tracker-3n97.onrender.com/api/applications/${applicationId}/resumes`)
       if (res.ok) {
         const data = await res.json()
         setResumes(data)
@@ -36,7 +36,7 @@ function ResumeModal({ isOpen, onClose, applicationId, jobTitle }) {
     formData.append('file', selectedFile)
 
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/applications/${applicationId}/resumes`, {
+      const res = await fetch(`https://job-application-tracker-3n97.onrender.com/api/applications/${applicationId}/resumes`, {
         method: 'POST',
         // Note: No Content-Type header here. fetch adds it automatically for FormData
         body: formData,
@@ -62,7 +62,7 @@ function ResumeModal({ isOpen, onClose, applicationId, jobTitle }) {
     if (!confirm("Are you sure you want to delete this file?")) return
 
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/resumes/${resumeId}`, {
+      const res = await fetch(`https://job-application-tracker-3n97.onrender.com/api/resumes/${resumeId}`, {
         method: 'DELETE'
       })
       if (res.ok) {
