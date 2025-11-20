@@ -1,15 +1,18 @@
-// Vercell Fix
-
 import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import CompanyCard from '../components/CompanyCard'
 import AddCompanyModal from '../components/AddCompanyModal'
+import EditCompanyModal from '../components/EditCompanyModal' // <-- 1. New Import
 
 function Home() {
   const [companies, setCompanies] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
+  
+  // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false) // <-- 2. New State
+  const [editingCompany, setEditingCompany] = useState(null)    // <-- 2. New State
 
   useEffect(() => {
     fetchCompanies()
@@ -30,6 +33,25 @@ function Home() {
 
   const handleCompanyAdded = () => {
     fetchCompanies()
+  }
+
+  // --- 3. New Helper Functions (Delete & Edit) ---
+  const handleDeleteCompany = async (id, e) => {
+    e.stopPropagation() // Stop the click from opening the details page
+    if (!window.confirm("Delete this company? All applications and data will be lost.")) return
+
+    try {
+      await fetch(`https://job-application-tracker-3n97.onrender.com/api/companies/${id}`, { method: 'DELETE' })
+      fetchCompanies() // Refresh the list
+    } catch (error) {
+      console.error("Error deleting:", error)
+    }
+  }
+
+  const openEditModal = (company, e) => {
+    e.stopPropagation() // Stop the click from opening the details page
+    setEditingCompany(company)
+    setIsEditModalOpen(true)
   }
 
   return (
@@ -72,7 +94,7 @@ function Home() {
         {!isLoading && !error && (
           <>
             {companies.length === 0 ? (
-              // Modern Empty State (Dark Mode Version)
+              // Modern Empty State
               <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-12 text-center shadow-xl">
                 <div className="text-6xl mb-4">🚀</div>
                 <h3 className="text-xl font-bold text-white mb-2">No companies tracked yet</h3>
@@ -85,10 +107,15 @@ function Home() {
                 </button>
               </div>
             ) : (
-              // Grid Layout
+              // 4. THE UPDATED GRID LAYOUT
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {companies.map((company) => (
-                  <CompanyCard key={company.id} company={company} />
+                  <CompanyCard 
+                    key={company.id} 
+                    company={company} 
+                    onDelete={(e) => handleDeleteCompany(company.id, e)}
+                    onEdit={(e) => openEditModal(company, e)}
+                  />
                 ))}
               </div>
             )}
@@ -101,6 +128,14 @@ function Home() {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)}
         onCompanyAdded={handleCompanyAdded}
+      />
+
+      {/* 5. The New Edit Company Modal */}
+      <EditCompanyModal 
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        company={editingCompany}
+        onCompanyUpdated={fetchCompanies}
       />
     </div>
   )
