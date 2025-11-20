@@ -1,3 +1,5 @@
+// Vercell Fix
+
 import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import CompanyCard from '../components/CompanyCard'
