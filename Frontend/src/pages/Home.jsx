@@ -63,7 +63,7 @@ function Home() {
         <div className="flex flex-col md:flex-row justify-between items-end md:items-center mb-10 gap-4">
           <div>
             <h1 className="text-4xl font-extrabold text-white tracking-tight">
-              My Applications
+              Companies
             </h1>
             <p className="text-indigo-200 mt-2 text-lg font-medium">Track your journey to your dream job.</p>
           </div>
