@@ -1,7 +1,7 @@
 ###  Company Model  ###
 
 ### Create a new company
-POST http://127.0.0.1:5000/api/companies
+POST https://job-application-tracker-3n97.onrender.com/api/companies
 Content-Type: application/json
 
 {
@@ -13,7 +13,7 @@ Content-Type: application/json
 ###
 
 ### Create another company (no address)
-POST http://127.0.0.1:5000/api/companies
+POST https://job-application-tracker-3n97.onrender.com/api/companies
 Content-Type: application/json
 
 {
@@ -23,7 +23,7 @@ Content-Type: application/json
 ###
 
 ### (FAIL) Create a company with no name
-POST http://127.0.0.1:5000/api/companies
+POST https://job-application-tracker-3n97.onrender.com/api/companies
 Content-Type: application/json
 
 {
@@ -33,13 +33,13 @@ Content-Type: application/json
 # 2. get_companies
 ### Get all companies
 
-GET http://127.0.0.1:5000/api/companies
+GET https://job-application-tracker-3n97.onrender.com/api/companies
 Accept: application/json
 
 # 3. Update_company
 
 ### UPDATE a company (Change the ID!)
-PUT http://127.0.0.1:5000/api/companies/11
+PUT https://job-application-tracker-3n97.onrender.com/api/companies/11
 Content-Type: application/json
 
 {
@@ -49,7 +49,7 @@ Content-Type: application/json
 # 4. Delete Company
 
 ### DELETE a company (Change the ID!)
-DELETE http://127.0.0.1:5000/api/companies/1
+DELETE https://job-application-tracker-3n97.onrender.com/api/companies/1
 
 #                    ---------        2nd Module       ----------                 #
 
@@ -57,7 +57,7 @@ DELETE http://127.0.0.1:5000/api/companies/1
 
 # 1. Create Application
 
-POST http://127.0.0.1:5000/api/applications
+POST https://job-application-tracker-3n97.onrender.com/api/applications
 Content-Type: application/json
 
 {
@@ -70,7 +70,7 @@ Content-Type: application/json
 
 ###
 
-POST http://127.0.0.1:5000/api/applications
+POST https://job-application-tracker-3n97.onrender.com/api/applications
 Content-Type: application/json
 
 {
@@ -81,17 +81,17 @@ Content-Type: application/json
 # 2. Get Applications
 
 ### Get all applications for a specific company (CHANGE ID!)
-GET http://127.0.0.1:5000/api/companies//applications
+GET https://job-application-tracker-3n97.onrender.com/api/companies//applications
 
 # 3. Get Application
 
 ### Get ONE application (CHANGE ID!)
-GET http://127.0.0.1:5000/api/applications/1
+GET https://job-application-tracker-3n97.onrender.com/api/applications/1
 
 # 4. Update application
 
 ### UPDATE an application (CHANGE ID!)
-PUT http://127.0.0.1:5000/api/applications/1
+PUT https://job-application-tracker-3n97.onrender.com/api/applications/1
 Content-Type: application/json
 
 {
@@ -102,7 +102,7 @@ Content-Type: application/json
 # 5. Delete application 
 
 ### DELETE an application (CHANGE ID!)
-DELETE http://127.0.0.1:5000/api/applications/2
+DELETE https://job-application-tracker-3n97.onrender.com/api/applications/2
 
 #                    ---------        3rd Module       ----------                 #
 
@@ -110,17 +110,17 @@ DELETE http://127.0.0.1:5000/api/applications/2
 
 # 1. Gets all resumes for an application
 
-GET http://127.0.0.1:5000/api/applications/1/resumes
+GET https://job-application-tracker-3n97.onrender.com/api/applications/1/resumes
 
 # 2. Delete the resumes 
 
 ### Delete an resume for an application
-DELETE http://127.0.0.1:5000/api/resumes/8
+DELETE https://job-application-tracker-3n97.onrender.com/api/resumes/8
 
 ###  Contacts model  ###
 
 # 1. Create contact
-POST http://127.0.0.1:5000/api/contacts
+POST https://job-application-tracker-3n97.onrender.com/api/contacts
 Content-Type: application/json
 
 {
@@ -132,11 +132,11 @@ Content-Type: application/json
 
 # 2. Get Contacts
 ### Get all contacts for a specific company 
-GET http://127.0.0.1:5000/api/companies/13/contacts
+GET https://job-application-tracker-3n97.onrender.com/api/companies/13/contacts
 
 # 3. Update Contact
 ### UPDATE a contact (CHANGE ID!)
-PUT http://127.0.0.1:5000/api/contacts/1
+PUT https://job-application-tracker-3n97.onrender.com/api/contacts/1
 Content-Type: application/json
 
 {
@@ -146,4 +146,4 @@ Content-Type: application/json
 
 # 4. Delete Contact
 ### DELETE a contact (CHANGE ID!)
-DELETE http://127.0.0.1:5000/api/contacts/1
+DELETE https://job-application-tracker-3n97.onrender.com/api/contacts/1
