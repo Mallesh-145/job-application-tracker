@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 
 function AddContactModal({ isOpen, onClose, companyId, onContactAdded }) {
+  const { token } = useAuth()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -22,7 +24,9 @@ function AddContactModal({ isOpen, onClose, companyId, onContactAdded }) {
     try {
       const response = await fetch('https://job-application-tracker-3n97.onrender.com/api/contacts', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` },
         body: JSON.stringify(newContact),
       })
 

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../context/AuthContext'
 
 function EditApplicationModal({ isOpen, onClose, application, onApplicationUpdated }) {
+  const { token } = useAuth()
   const [jobTitle, setJobTitle] = useState('')
   const [status, setStatus] = useState('To Apply')
   const [jobUrl, setJobUrl] = useState('')
@@ -8,14 +10,12 @@ function EditApplicationModal({ isOpen, onClose, application, onApplicationUpdat
   const [date, setDate] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Pre-fill the form when the modal opens or the application changes
   useEffect(() => {
     if (application) {
       setJobTitle(application.job_title || '')
       setStatus(application.status || 'To Apply')
       setJobUrl(application.job_url || '')
       setNotes(application.notes || '')
-      // Format date for input (YYYY-MM-DD)
       if (application.application_date) {
         const formattedDate = new Date(application.application_date).toISOString().split('T')[0]
         setDate(formattedDate)
@@ -40,15 +40,16 @@ function EditApplicationModal({ isOpen, onClose, application, onApplicationUpdat
     }
 
     try {
-      // NOTICE: Method is PUT and URL has the ID
       const response = await fetch(`https://job-application-tracker-3n97.onrender.com/api/applications/${application.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` },
         body: JSON.stringify(updatedData),
       })
 
       if (response.ok) {
-        onApplicationUpdated() // Refresh the list
+        onApplicationUpdated() 
         onClose()
       } else {
         alert("Failed to update application")

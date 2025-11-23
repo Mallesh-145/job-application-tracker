@@ -1,35 +1,34 @@
 import { useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 
 function AddCompanyModal({ isOpen, onClose, onCompanyAdded }) {
-  // State for the form inputs
+  const { token } = useAuth()
   const [name, setName] = useState('')
   const [address, setAddress] = useState('')
-  const [websiteUrl, setWebsiteUrl] = useState('') // New field we added!
+  const [websiteUrl, setWebsiteUrl] = useState('') 
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  if (!isOpen) return null; // Don't render if not open
+  if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsSubmitting(true)
-
     const newCompany = { name, address, website_url: websiteUrl }
-
     try {
       const response = await fetch('https://job-application-tracker-3n97.onrender.com/api/companies', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(newCompany),
       })
 
       if (response.ok) {
-        // If successful, clear form and close modal
         setName('')
         setAddress('')
         setWebsiteUrl('')
-        onCompanyAdded() // Tell the parent App to refresh the list
+        onCompanyAdded() 
         onClose()
       } else {
         alert("Failed to add company")

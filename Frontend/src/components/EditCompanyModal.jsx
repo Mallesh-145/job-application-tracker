@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../context/AuthContext'
 
 function EditCompanyModal({ isOpen, onClose, company, onCompanyUpdated }) {
+  const { token } = useAuth()
   const [name, setName] = useState('')
   const [address, setAddress] = useState('')
   const [websiteUrl, setWebsiteUrl] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Pre-fill the form
   useEffect(() => {
     if (company) {
       setName(company.name || '')
@@ -24,10 +25,11 @@ function EditCompanyModal({ isOpen, onClose, company, onCompanyUpdated }) {
     const updatedCompany = { name, address, website_url: websiteUrl }
 
     try {
-      // NOTICE: Using PUT and the company.id
       const response = await fetch(`https://job-application-tracker-3n97.onrender.com/api/companies/${company.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` },
         body: JSON.stringify(updatedCompany),
       })
 

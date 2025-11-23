@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext' 
 import Navbar from '../components/Navbar'
 import AddApplicationModal from '../components/AddApplicationModal'
 import AddContactModal from '../components/AddContactModal'
@@ -9,15 +10,14 @@ import EditContactModal from '../components/EditContactModal'
 
 function CompanyPage() {
   const { id } = useParams()
-  
-  // --- State Management ---
+  const { token, logout } = useAuth() 
   const [company, setCompany] = useState(null)
   const [applications, setApplications] = useState([]) 
   const [contacts, setContacts] = useState([])         
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   
-  // Modal States
+
   const [isAppModalOpen, setIsAppModalOpen] = useState(false)
   const [isContactModalOpen, setIsContactModalOpen] = useState(false)
   const [isResumeModalOpen, setIsResumeModalOpen] = useState(false)
@@ -28,16 +28,20 @@ function CompanyPage() {
   const [isEditContactModalOpen, setIsEditContactModalOpen] = useState(false)
   const [editingContact, setEditingContact] = useState(null)
 
-  // --- Fetch All Data on Load ---
   useEffect(() => {
     const fetchData = async () => {
+      if (!token) return;
+
+      const authHeaders = { 'Authorization': `Bearer ${token}` }
+
       try {
         const [companyRes, appsRes, contactsRes] = await Promise.all([
-          fetch(`https://job-application-tracker-3n97.onrender.com/api/companies/${id}`),
-          fetch(`https://job-application-tracker-3n97.onrender.com/api/companies/${id}/applications`),
-          fetch(`https://job-application-tracker-3n97.onrender.com/api/companies/${id}/contacts`)
+          fetch(`https://job-application-tracker-3n97.onrender.com/api/companies/${id}`, { headers: authHeaders }),
+          fetch(`https://job-application-tracker-3n97.onrender.com/api/companies/${id}/applications`, { headers: authHeaders }),
+          fetch(`https://job-application-tracker-3n97.onrender.com/api/companies/${id}/contacts`, { headers: authHeaders })
         ])
 
+        if (companyRes.status === 401) { logout(); return; }
         if (!companyRes.ok) throw new Error('Company not found')
 
         const companyData = await companyRes.json()
@@ -56,18 +60,21 @@ function CompanyPage() {
     }
 
     fetchData()
-  }, [id])
+  }, [id, token])
 
-  // --- Helper Functions ---
 
   const refreshApplications = async () => {
-    const res = await fetch(`https://job-application-tracker-3n97.onrender.com/api/companies/${id}/applications`)
+    const res = await fetch(`https://job-application-tracker-3n97.onrender.com/api/companies/${id}/applications`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
     const data = await res.json()
     setApplications(data)
   }
 
   const refreshContacts = async () => {
-    const res = await fetch(`https://job-application-tracker-3n97.onrender.com/api/companies/${id}/contacts`)
+    const res = await fetch(`https://job-application-tracker-3n97.onrender.com/api/companies/${id}/contacts`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
     const data = await res.json()
     setContacts(data)
   }
@@ -89,36 +96,26 @@ function CompanyPage() {
   }
 
   const handleDeleteApplication = async (applicationId) => {
-    if (!window.confirm("Are you sure you want to delete this application? This action cannot be undone.")) {
-      return;
-    }
+    if (!window.confirm("Are you sure you want to delete this application?")) return;
     try {
-      const response = await fetch(`https://job-application-tracker-3n97.onrender.com/api/applications/${applicationId}`, {
+      await fetch(`https://job-application-tracker-3n97.onrender.com/api/applications/${applicationId}`, {
         method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
       })
-      if (response.ok) {
-        refreshApplications()
-      } else {
-        alert("Failed to delete application")
-      }
+      refreshApplications()
     } catch (error) {
       console.error("Error:", error)
-      alert("Error deleting application")
     }
   }
 
   const handleDeleteContact = async (contactId) => {
     if (!window.confirm("Delete this contact?")) return;
-
     try {
-      const res = await fetch(`https://job-application-tracker-3n97.onrender.com/api/contacts/${contactId}`, {
-        method: 'DELETE'
+      await fetch(`https://job-application-tracker-3n97.onrender.com/api/contacts/${contactId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
       })
-      if (res.ok) {
-        refreshContacts() 
-      } else {
-        alert("Failed to delete contact")
-      }
+      refreshContacts() 
     } catch (error) {
       console.error("Error:", error)
     }
@@ -184,24 +181,15 @@ function CompanyPage() {
                         <h3 className="font-bold text-xl text-gray-800 group-hover:text-indigo-600 transition-colors">
                           {app.job_title}
                         </h3>
-                        
                         {app.job_url && (
-                          <a 
-                             href={app.job_url} 
-                             target="_blank" 
-                             rel="noopener noreferrer"
-                             className="text-indigo-500 text-xs font-medium hover:underline block mt-1"
-                          >
+                          <a href={app.job_url} target="_blank" rel="noopener noreferrer" className="text-indigo-500 text-xs font-medium hover:underline block mt-1">
                              🔗 View Job Posting
                           </a>
                         )}
-                        
                         <p className="text-sm text-gray-400 mt-2 font-medium">
                           Applied: {app.application_date ? new Date(app.application_date).toLocaleDateString() : 'N/A'}
                         </p>
                       </div>
-
-                      {/* Modern Status Badge */}
                       <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider
                         ${app.status === 'Applied' ? 'bg-amber-100 text-amber-700' : 
                           app.status === 'Interviewing' ? 'bg-violet-100 text-violet-700' : 
@@ -211,33 +199,14 @@ function CompanyPage() {
                         {app.status}
                       </span>
                     </div>
-
                     {app.notes && (
-                      <div className="mt-4 bg-gray-50 p-3 rounded-lg border border-gray-100 text-gray-600 text-sm italic">
-                        "{app.notes}"
-                      </div>
+                      <div className="mt-4 bg-gray-50 p-3 rounded-lg border border-gray-100 text-gray-600 text-sm italic">"{app.notes}"</div>
                     )}
-                    
                     <div className="mt-5 flex gap-3 pt-4 border-t border-gray-50">
-                      <button 
-                          onClick={() => openResumeModal(app.id, app.job_title)}
-                          className="text-sm text-gray-500 hover:text-indigo-600 font-medium flex items-center gap-1 transition-colors"
-                      >
-                          📂 Resumes
-                      </button>
+                      <button onClick={() => openResumeModal(app.id, app.job_title)} className="text-sm text-gray-500 hover:text-indigo-600 font-medium flex items-center gap-1 transition-colors">📂 Resumes</button>
                       <div className="h-4 w-px bg-gray-200 self-center"></div>
-                      <button 
-                          onClick={() => openEditModal(app)}
-                          className="text-sm text-gray-500 hover:text-blue-600 font-medium flex items-center gap-1 transition-colors"
-                      >
-                          ✏️ Edit
-                      </button>
-                      <button 
-                          onClick={() => handleDeleteApplication(app.id)}
-                          className="text-sm text-gray-400 hover:text-rose-600 font-medium flex items-center gap-1 ml-auto transition-colors"
-                      >
-                          🗑️ Delete
-                      </button>
+                      <button onClick={() => openEditModal(app)} className="text-sm text-gray-500 hover:text-blue-600 font-medium flex items-center gap-1 transition-colors">✏️ Edit</button>
+                      <button onClick={() => handleDeleteApplication(app.id)} className="text-sm text-gray-400 hover:text-rose-600 font-medium flex items-center gap-1 ml-auto transition-colors">🗑️ Delete</button>
                     </div>
                   </div>
                 ))
@@ -249,12 +218,7 @@ function CompanyPage() {
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold text-white tracking-tight">Contacts</h2>
-              
-              {/* NEW GRADIENT BUTTON FOR CONTACTS */}
-              <button 
-                onClick={() => setIsContactModalOpen(true)} 
-                className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:-translate-y-0.5 transition-all duration-300"
-              >
+              <button onClick={() => setIsContactModalOpen(true)} className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:-translate-y-0.5 transition-all duration-300">
                 + Add Contact
               </button>
             </div>
@@ -268,34 +232,18 @@ function CompanyPage() {
                 contacts.map(contact => (
                   <div key={contact.id} className="group bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300 relative">
                     <div className="flex items-center gap-4">
-                      {/* Fake Avatar based on name */}
                       <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/20">
                         {contact.name.charAt(0)}
                       </div>
-                      
                       <div>
                           <p className="font-bold text-gray-800">{contact.name}</p>
                           {contact.email && <p className="text-sm text-indigo-500 font-medium">{contact.email}</p>}
                           {contact.phone && <p className="text-sm text-gray-400">{contact.phone}</p>}
                       </div>
                     </div>
-      
-                    {/* Hover Actions */}
                     <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        <button 
-                          onClick={() => openEditContactModal(contact)}
-                          className="text-gray-400 hover:text-indigo-600 p-1"
-                          title="Edit"
-                        >
-                          ✏️
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteContact(contact.id)}
-                          className="text-gray-400 hover:text-rose-500 p-1"
-                          title="Delete"
-                        >
-                          ✕
-                        </button>
+                        <button onClick={() => openEditContactModal(contact)} className="text-gray-400 hover:text-indigo-600 p-1" title="Edit">✏️</button>
+                        <button onClick={() => handleDeleteContact(contact.id)} className="text-gray-400 hover:text-rose-500 p-1" title="Delete">✕</button>
                     </div>
                   </div>
                 ))
@@ -308,34 +256,19 @@ function CompanyPage() {
    
       {/* Modals */}
       <AddApplicationModal 
-        isOpen={isAppModalOpen}
-        onClose={() => setIsAppModalOpen(false)}
-        companyId={id}
-        onApplicationAdded={refreshApplications}
+        isOpen={isAppModalOpen} onClose={() => setIsAppModalOpen(false)} companyId={id} onApplicationAdded={refreshApplications}
       />
       <AddContactModal 
-        isOpen={isContactModalOpen}
-        onClose={() => setIsContactModalOpen(false)}
-        companyId={id}
-        onContactAdded={refreshContacts}
+        isOpen={isContactModalOpen} onClose={() => setIsContactModalOpen(false)} companyId={id} onContactAdded={refreshContacts}
       />
       <ResumeModal 
-        isOpen={isResumeModalOpen}
-        onClose={() => setIsResumeModalOpen(false)}
-        applicationId={selectedAppId}
-        jobTitle={selectedJobTitle}
+        isOpen={isResumeModalOpen} onClose={() => setIsResumeModalOpen(false)} applicationId={selectedAppId} jobTitle={selectedJobTitle}
       />
       <EditApplicationModal 
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        application={editingApplication}
-        onApplicationUpdated={refreshApplications}
+        isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} application={editingApplication} onApplicationUpdated={refreshApplications}
       />
       <EditContactModal 
-        isOpen={isEditContactModalOpen}
-        onClose={() => setIsEditContactModalOpen(false)}
-        contact={editingContact}
-        onContactUpdated={refreshContacts}
+        isOpen={isEditContactModalOpen} onClose={() => setIsEditContactModalOpen(false)} contact={editingContact} onContactUpdated={refreshContacts}
       />
     </div>
   )

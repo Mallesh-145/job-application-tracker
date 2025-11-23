@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 
 function AddApplicationModal({ isOpen, onClose, companyId, onApplicationAdded }) {
+  const { token } = useAuth()
   const [jobTitle, setJobTitle] = useState('')
   const [status, setStatus] = useState('To Apply')
   const [jobUrl, setJobUrl] = useState('')
@@ -15,30 +17,33 @@ function AddApplicationModal({ isOpen, onClose, companyId, onApplicationAdded })
     setIsSubmitting(true)
 
     const newApplication = {
-      company_id: companyId, // We need to tell Flask which company this is for!
+      company_id: companyId, 
       job_title: jobTitle,
       status: status,
       job_url: jobUrl,
       notes: notes,
-      application_date: date || null // Send null if empty
+      application_date: date || null 
     }
 
     try {
       const response = await fetch('https://job-application-tracker-3n97.onrender.com/api/applications', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+         },
+        
         body: JSON.stringify(newApplication),
       })
 
       if (response.ok) {
-        // Clear form
         setJobTitle('')
         setStatus('To Apply')
         setJobUrl('')
         setNotes('')
         setDate('')
         
-        onApplicationAdded() // Refresh the list!
+        onApplicationAdded() 
         onClose()
       } else {
         alert("Failed to add application")

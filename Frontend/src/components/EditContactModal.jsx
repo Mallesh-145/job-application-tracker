@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../context/AuthContext'
 
 function EditContactModal({ isOpen, onClose, contact, onContactUpdated }) {
+  const { token } = useAuth()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Pre-fill data when the modal opens
   useEffect(() => {
     if (contact) {
       setName(contact.name || '')
@@ -26,7 +27,9 @@ function EditContactModal({ isOpen, onClose, contact, onContactUpdated }) {
     try {
       const response = await fetch(`https://job-application-tracker-3n97.onrender.com/api/contacts/${contact.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`},
         body: JSON.stringify(updatedContact),
       })
 

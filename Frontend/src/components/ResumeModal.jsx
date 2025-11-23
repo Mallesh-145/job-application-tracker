@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../context/AuthContext'
 
 function ResumeModal({ isOpen, onClose, applicationId, jobTitle }) {
+  const { token } = useAuth()
   const [resumes, setResumes] = useState([])
   const [selectedFile, setSelectedFile] = useState(null)
   const [isUploading, setIsUploading] = useState(false)
 
-  // 1. Fetch existing resumes when the modal opens
   useEffect(() => {
     if (isOpen && applicationId) {
       fetchResumes()
@@ -14,7 +15,11 @@ function ResumeModal({ isOpen, onClose, applicationId, jobTitle }) {
 
   const fetchResumes = async () => {
     try {
-      const res = await fetch(`https://job-application-tracker-3n97.onrender.com/api/applications/${applicationId}/resumes`)
+      const res = await fetch(`https://job-application-tracker-3n97.onrender.com/api/applications/${applicationId}/resumes`, {
+        headers : {
+          'Authorization': `Bearer ${token}`
+        }
+      })
       if (res.ok) {
         const data = await res.json()
         setResumes(data)
@@ -23,8 +28,6 @@ function ResumeModal({ isOpen, onClose, applicationId, jobTitle }) {
       console.error("Error fetching resumes:", error)
     }
   }
-
-  // 2. Handle File Upload
   const handleUpload = async (e) => {
     e.preventDefault()
     if (!selectedFile) return
@@ -37,6 +40,9 @@ function ResumeModal({ isOpen, onClose, applicationId, jobTitle }) {
     try {
       const res = await fetch(`https://job-application-tracker-3n97.onrender.com/api/applications/${applicationId}/resumes`, {
         method: 'POST',
+        headers: { 
+        'Authorization': `Bearer ${token}` 
+      },
         body: formData,
       })
 
@@ -54,13 +60,15 @@ function ResumeModal({ isOpen, onClose, applicationId, jobTitle }) {
     }
   }
 
-  // 3. Handle Delete
   const handleDelete = async (resumeId) => {
     if (!confirm("Are you sure you want to delete this file?")) return
 
     try {
       const res = await fetch(`https://job-application-tracker-3n97.onrender.com/api/resumes/${resumeId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: { 
+        'Authorization': `Bearer ${token}` 
+      },
       })
       if (res.ok) {
         fetchResumes() 
