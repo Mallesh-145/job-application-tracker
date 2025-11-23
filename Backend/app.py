@@ -1,400 +1,381 @@
-import io
 import os
-from flask import Flask , request , jsonify , send_file
-import datetime 
+import io
+import uuid
+import datetime
+from flask import Flask, request, jsonify, send_file
 from dotenv import load_dotenv
-from db import db  
+from db import db
 from flask_migrate import Migrate
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
+from flask_bcrypt import Bcrypt
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 
-
-load_dotenv('files.env') 
+# Load environment variables
+load_dotenv('files.env')
 
 app = Flask(__name__)
-CORS(app)  
-
+CORS(app)
 
 # --- Database Configuration ---
 DB_URL = os.getenv("DATABASE_URL", 'postgresql+psycopg2://postgres:mallesh@localhost:5432/Project')
-
 app.config['SQLALCHEMY_DATABASE_URI'] = DB_URL
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False 
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# --- File Upload Configuration ---
+# --- File Upload Config ---
 UPLOAD_FOLDER = os.path.join(app.root_path, 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-db.init_app(app) 
+# --- Security Configuration (NEW) ---
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'super-secret-key-change-this-in-prod') 
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(days=7)
+
+# --- Initialize Extensions ---
+db.init_app(app)
 migrate = Migrate(app, db)
+bcrypt = Bcrypt(app)      # Hashes passwords
+jwt = JWTManager(app)     # Handles tokens
 
-from models import Company, JobApplication, Resume, Contact
+# --- Import Models ---
+from models import User, Company, JobApplication, Resume, Contact
 
-# --- Your Routes ---
-@app.route('/')
-def hello_World():
-    return 'Hello World 123'
- 
-# --- API ENDPOINTS ---
+# ==========================================
+#  AUTHENTICATION ENDPOINTS
+# ==========================================
 
-###  Company Endpoints  ###
+@app.route('/api/auth/register', methods=['POST'])
+def register():
+    data = request.json
+    if not data or not data.get('username') or not data.get('password') or not data.get('email'):
+        return jsonify({"error": "Missing username, email, or password"}), 400
+    if User.query.filter_by(username=data['username']).first():
+        return jsonify({"error": "Username already exists"}), 400
+    if User.query.filter_by(email=data['email']).first():
+        return jsonify({"error": "Email already exists"}), 400
+
+    # Hash the password
+    hashed_password = bcrypt.generate_password_hash(data['password']).decode('utf-8')
+
+    new_user = User(
+        username=data['username'],
+        email=data['email'],
+        password_hash=hashed_password
+    )
+
+    try:
+        db.session.add(new_user)
+        db.session.commit()
+        return jsonify({"message": "User registered successfully"}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    data = request.json
+    user = User.query.filter_by(username=data.get('username')).first()
+    if user and bcrypt.check_password_hash(user.password_hash, data.get('password')):
+        # Create Token (The "Passport")
+        access_token = create_access_token(identity=str(user.id))
+        return jsonify({
+            "message": "Login successful",
+            "token": access_token,
+            "username": user.username
+        }), 200
+    else:
+        return jsonify({"error": "Invalid credentials"}), 401
+
+# ==========================================
+#  COMPANY ENDPOINTS (Protected)
+# ==========================================
 
 @app.route('/api/companies', methods=['POST'])
+@jwt_required()
 def create_company():
-    print(">>> Handler: create_company, method:", request.method)
+    current_user_id = get_jwt_identity()
     data = request.json
+    
     if not data or 'name' not in data:
-        return jsonify({'error': 'Company name is required'}), 400
-    new_company = Company(name=data['name'], address=data.get('address'), website_url=data.get('website_url'))
+        return jsonify({"error": "Company name is required"}), 400
+    
+    new_company = Company(
+        name=data['name'],
+        address=data.get('address'),
+        website_url=data.get('website_url'),
+        user_id=current_user_id 
+    )
+    
     try:
         db.session.add(new_company)
         db.session.commit()
-        db.session.refresh(new_company)
-        return jsonify({
-            "message": "Company created successfully",
-            "company_id": new_company.id,
-            "name": new_company.name
-        }), 201
+        return jsonify({"message": "Company created", "id": new_company.id}), 201
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": f"Database error: {str(e)}"}), 500
-   
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/api/companies', methods=['GET'])
+@jwt_required()
 def get_companies():
-    print(">>> Handler: get_companies, method:", request.method)
-    try:
-        companies = Company.query.all()
-        company_list = []
-        for company in companies:
-            company_data = {
-               "id" : company.id,
-               "name" : company.name,
-               "address" : company.address,
-               "website_url": company.website_url
-            }
-            company_list.append(company_data)
-        return jsonify(company_list)
-    except Exception as e :
-        print(f"🔥 SERVER ERROR: {str(e)}", flush=True)
-        return jsonify({"error": f"Database error: {str(e)}"}), 500
+    current_user_id = get_jwt_identity()
+    companies = Company.query.filter_by(user_id=current_user_id).all()
+    company_list = [{
+        "id": c.id, "name": c.name, "address": c.address, "website_url": c.website_url
+    } for c in companies]
+    return jsonify(company_list), 200
 
 @app.route('/api/companies/<int:company_id>', methods=['GET'])
+@jwt_required()
 def get_company(company_id):
-    company = Company.query.get(company_id)
-    
+    current_user_id = get_jwt_identity()
+    company = Company.query.filter_by(id=company_id, user_id=current_user_id).first() 
     if not company:
-        return jsonify({"error": "Company not found"}), 404
-        
+        return jsonify({"error": "Company not found"}), 404   
     return jsonify({
-        "id": company.id,
-        "name": company.name,
-        "address": company.address,
-        "website_url": company.website_url
+        "id": company.id, "name": company.name, "address": company.address, "website_url": company.website_url
     }), 200
-    
+
 @app.route('/api/companies/<int:company_id>', methods=['PUT'])
+@jwt_required()
 def update_company(company_id):
-    try:
-        company = Company.query.get(company_id)
-        if not company :
-            return jsonify({"ERROR ": "Company not found"}), 404
-        data = request.json
-        company.name = data.get('name',company.name)
-        company.address = data.get('address',company.address)
-        company.website_url = data.get('website_url', company.website_url)
-        db.session.commit()
-        return jsonify({"message":"Company updated successfully"}), 200
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error":f"Database error: {str(e)}"}), 500
+    current_user_id = get_jwt_identity()
+    company = Company.query.filter_by(id=company_id, user_id=current_user_id).first()
+    if not company: return jsonify({"error": "Company not found"}), 404
+    data = request.json
+    company.name = data.get('name', company.name)
+    company.address = data.get('address', company.address)
+    company.website_url = data.get('website_url', company.website_url)
+    
+    db.session.commit()
+    return jsonify({"message": "Company updated"}), 200
 
 @app.route('/api/companies/<int:company_id>', methods=['DELETE'])
+@jwt_required()
 def delete_company(company_id):
-    try:
-        company = Company.query.get(company_id)
-        if not company:
-            return jsonify({"error": "Company not found "}), 404
-        db.session.delete(company)
-        db.session.commit()
-        return jsonify({"message":"Company delete successfully"}), 200
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"Error":f"Database error {str(e)}"}), 500
+    current_user_id = get_jwt_identity()
+    company = Company.query.filter_by(id=company_id, user_id=current_user_id).first()
     
-###  Job Application Endpoints  ###
+    if not company: return jsonify({"error": "Company not found"}), 404
+    
+    db.session.delete(company)
+    db.session.commit()
+    return jsonify({"message": "Company deleted"}), 200
+
+# ==========================================
+#  JOB APPLICATION ENDPOINTS (Protected)
+# ==========================================
 
 @app.route('/api/applications', methods=['POST'])
-def create_Application():
-        
-        data = request.json
-        required_fields = ['job_title','company_id']
-        if not data or not all(field in data for field in required_fields):
-            return jsonify({"message":" Missing the required fields job_title,company_id"}), 400   
-        job_title = data['job_title']
-        company_id = data['company_id']
-        comopany = Company.query.get(company_id)
-        if not comopany :
-            return jsonify({"error": f"Company with id {company_id} not found"}), 404     
-        status = data.get("status", "To Apply")
-        if data.get('application_date'):
-            application_date = data['application_date']
-        elif status == 'Applied':
-            application_date = datetime.datetime.now()
-        else:
-            application_date = None
-        new_application = JobApplication(
-            job_title = job_title,
-            company_id = company_id,
-            status=status,
-            application_date=application_date,
-            notes=data.get('notes'),
-            job_url=data.get('job_url')
-        )
-        try:
-            db.session.add(new_application)
-            db.session.commit()
-            db.session.refresh(new_application)
-            return jsonify({
-                "message":"Job application created successfully",
-                "application_id": new_application.id
-            }), 201
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"error": f"Database error : {str(e)}"}), 500
+@jwt_required()
+def create_application():
+    current_user_id = get_jwt_identity()
+    data = request.json
     
-@app.route('/api/companies/<int:company_id>/applications', methods=['GET'])
-def get_applications_for_company(company_id):
-    company = Company.query.get(company_id)
+    company = Company.query.filter_by(id=data['company_id'], user_id=current_user_id).first()
     if not company:
-        return jsonify({"error": f"Company with id {company_id} not found"}), 404
-    applications = company.applications 
-    application_list = []
-    for app in applications:
-        app_data = {
-            "id": app.id,
-            "job_title": app.job_title,
-            "status": app.status,
-            "application_date": app.application_date,
-            "notes": app.notes,
-            "job_url": app.job_url,
-            "company_id": app.company_id
-        }
-        application_list.append(app_data)
-    return jsonify(application_list), 200
+        return jsonify({"error": "Company not found or access denied"}), 404
 
-@app.route('/api/applications/<int:application_id>', methods=['GET'])
-def get_application(application_id):
-    application = JobApplication.query.get(application_id)
-    if not application:
-        return jsonify({"error": f"Application with id {application_id} not found"}), 404
-    app_data = {
-        "id": application.id,
-        "job_title": application.job_title,
-        "status": application.status,
-        "application_date": application.application_date,
-        "notes": application.notes,
-        "job_url": application.job_url,
-        "company_id": application.company_id
-    }
-    return jsonify(app_data), 200
+    status = data.get('status', 'To Apply')
+    application_date = data.get('application_date')
+    if not application_date and status == 'Applied':
+        application_date = datetime.datetime.now()
+    
+    new_app = JobApplication(
+        job_title=data['job_title'],
+        company_id=data['company_id'],
+        status=status,
+        application_date=application_date,
+        notes=data.get('notes'),
+        job_url=data.get('job_url')
+    )
+    
+    db.session.add(new_app)
+    db.session.commit()
+    return jsonify({"message": "Application created", "id": new_app.id}), 201
 
-@app.route('/api/applications/<int:application_id>', methods=['PUT'])
-def update_application(application_id):
-    application = JobApplication.query.get(application_id)
-    if not application:
-        return jsonify({"error": f"Application with id {application_id} not found"}), 404
+@app.route('/api/companies/<int:company_id>/applications', methods=['GET'])
+@jwt_required()
+def get_applications(company_id):
+    current_user_id = get_jwt_identity()
+    company = Company.query.filter_by(id=company_id, user_id=current_user_id).first()
+    
+    if not company: return jsonify({"error": "Company not found"}), 404
+    
+    apps_list = [{
+        "id": a.id, "job_title": a.job_title, "status": a.status, 
+        "application_date": a.application_date, "notes": a.notes, "job_url": a.job_url
+    } for a in company.applications]
+    
+    return jsonify(apps_list), 200
+
+@app.route('/api/applications/<int:app_id>', methods=['PUT'])
+@jwt_required()
+def update_application(app_id):
+    current_user_id = get_jwt_identity()
+
+    application = JobApplication.query.join(Company).filter(
+        JobApplication.id == app_id, Company.user_id == current_user_id
+    ).first()
+    
+    if not application: return jsonify({"error": "Application not found"}), 404
+    
     data = request.json
     application.job_title = data.get('job_title', application.job_title)
     application.status = data.get('status', application.status)
     application.application_date = data.get('application_date', application.application_date)
     application.notes = data.get('notes', application.notes)
     application.job_url = data.get('job_url', application.job_url)
-    try:
-        db.session.commit()
-        return jsonify({"message": "Application updated successfully"}), 200
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": f"Database error: {str(e)}"}), 500
     
-@app.route('/api/applications/<int:application_id>', methods=['DELETE'])
-def delete_application(application_id):
-    application = JobApplication.query.get(application_id)
-    if not application:
-        return jsonify({"error": f"Application with id {application_id} not found"}), 404
-    try:
-        db.session.delete(application)
-        db.session.commit()
-        return jsonify({"message": "Application deleted successfully"}), 200
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": f"Database error: {str(e)}"}), 500
+    db.session.commit()
+    return jsonify({"message": "Updated"}), 200
 
-# --- Resume Endpoints --- #
+@app.route('/api/applications/<int:app_id>', methods=['DELETE'])
+@jwt_required()
+def delete_application(app_id):
+    current_user_id = get_jwt_identity()
+    application = JobApplication.query.join(Company).filter(
+        JobApplication.id == app_id, Company.user_id == current_user_id
+    ).first()
+    
+    if not application: return jsonify({"error": "Application not found"}), 404
+    
+    db.session.delete(application)
+    db.session.commit()
+    return jsonify({"message": "Deleted"}), 200
 
-@app.route('/api/applications/<int:application_id>/resumes', methods=['POST'])
-def upload_resume(application_id):
-    application = JobApplication.query.get(application_id)
-    if not application:
-        return jsonify({"error": f"Application with id {application_id} not found"}), 404
-        
-    if 'file' not in request.files:
-        return jsonify({"error": "No file part"}), 400
-        
+# ==========================================
+#  RESUME ENDPOINTS (Protected + Binary)
+# ==========================================
+
+@app.route('/api/applications/<int:app_id>/resumes', methods=['POST'])
+@jwt_required()
+def upload_resume(app_id):
+    current_user_id = get_jwt_identity()
+    application = JobApplication.query.join(Company).filter(
+        JobApplication.id == app_id, Company.user_id == current_user_id
+    ).first()
+    
+    if not application: return jsonify({"error": "Application not found"}), 404
+    
     file = request.files['file']
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
-        
     if file:
         filename = secure_filename(file.filename)
-        file_data = file.read() 
-        
+        version = len(application.resumes) + 1
+        unique_name = f"{os.path.splitext(filename)[0]}_v{version}.pdf"
         new_resume = Resume(
-            filename=filename,
-            data=file_data,  # Store the bytes directly
-            application_id=application_id
+            filename=unique_name,
+            data=file.read(),
+            application_id=app_id
         )
-        
-        try:
-            db.session.add(new_resume)
-            db.session.commit()
-            
-            return jsonify({
-                "message": "File uploaded successfully",
-                "resume_id": new_resume.id,
-                "filename": new_resume.filename
-            }), 201
-            
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"error": f"Database error: {str(e)}"}), 500
+        db.session.add(new_resume)
+        db.session.commit()
+        return jsonify({"message": "Uploaded"}), 201
+    return jsonify({"error": "No file"}), 400
+
+@app.route('/api/applications/<int:app_id>/resumes', methods=['GET'])
+@jwt_required()
+def get_resumes(app_id):
+    current_user_id = get_jwt_identity()
+    application = JobApplication.query.join(Company).filter(
+        JobApplication.id == app_id, Company.user_id == current_user_id
+    ).first()
     
+    if not application: return jsonify({"error": "Not found"}), 404
+    
+    return jsonify([{
+        "id": r.id, "filename": r.filename, "upload_date": r.upload_date
+    } for r in application.resumes]), 200
+
 @app.route('/api/resumes/<int:resume_id>/download', methods=['GET'])
+# Note: Download links are hard to add headers to in plain HTML <a> tags.
+# For strict security, we'd use a temporary token. 
+# For this project, we can leave it public OR use a trick. 
+# Let's keep it simple: If you have the valid ID, you can view it.
+# But ideally, you'd implement a 'short-lived token' system here.
 def download_resume(resume_id):
-    try:
-        resume = Resume.query.get(resume_id)
-        if not resume:
-            return jsonify({"error": "Resume not found"}), 404
-        return send_file(
-            io.BytesIO(resume.data),
-            download_name=resume.filename,
-            as_attachment=False 
-        )
-        
-    except Exception as e:
-        return jsonify({"error": f"Error sending file: {str(e)}"}), 500
+    resume = Resume.query.get(resume_id)
+    if not resume: return jsonify({"error": "Not found"}), 404
     
-@app.route('/api/applications/<int:application_id>/resumes', methods=['GET'])
-def get_resumes(application_id):
-    application = JobApplication.query.get(application_id)
-    if not application:
-        return jsonify({"error":f"Application with id {application_id} does not exist"}), 404
-    resumes = application.resumes
-    resume_list = []
-    for resume in resumes:
-        resume_data = {
-            "id" : resume.id,
-            "path": resume.filename,
-            "upload_date": resume.upload_date,
-            "application_id": resume.application_id
-        }
-        resume_list.append(resume_data)
-    return jsonify(resume_list), 200
+    return send_file(
+        io.BytesIO(resume.data),
+        download_name=resume.filename,
+        as_attachment=False
+    )
 
 @app.route('/api/resumes/<int:resume_id>', methods=['DELETE'])
+@jwt_required()
 def delete_resume(resume_id):
-    resume = Resume.query.get(resume_id)
-    if not resume:
-        return jsonify({"error":f"The resume with id {resume_id} does not exist"}), 404
-    file_path = resume.path
-    try:
-        db.session.delete(resume)
-        if os.path.exists(file_path):
-            os.remove(file_path)
-        db.session.commit()
-        return jsonify({"message": "Resume deleted Succesfully"}), 200
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error":f"Database error: {str(e)}"}), 500
+    current_user_id = get_jwt_identity()
+    resume = Resume.query.join(JobApplication).join(Company).filter(
+        Resume.id == resume_id, Company.user_id == current_user_id
+    ).first()
     
-# --- Contact Endpoints ---
+    if not resume: return jsonify({"error": "Not found"}), 404
+    
+    db.session.delete(resume)
+    db.session.commit()
+    return jsonify({"message": "Deleted"}), 200
+
+# ==========================================
+#  CONTACT ENDPOINTS (Protected)
+# ==========================================
 
 @app.route('/api/contacts', methods=['POST'])
+@jwt_required()
 def create_contact():
+    current_user_id = get_jwt_identity()
     data = request.json
-    required_fields = ['name','company_id']
-    if not data or not all(field in data for field in required_fields):
-        return jsonify({"error":"Missing required fields name and company_id"}), 400
-    company_id = data['company_id']
-    company = Company.query.get(company_id)
-    if not company:
-        return jsonify({"error":f"company with id {company_id} is not found "}), 404
-    new_contact = Contact(
-        name = data['name'],
-        company_id = data['company_id'],
-        email = data.get('email'),
-        phone = data.get('phone')
-    )
-    try:
-        db.session.add(new_contact)
-        db.session.flush()
-        db.session.commit()
-        return jsonify({
-            "message":"Contact saved successfully",
-            "contact_id":new_contact.id
-        }), 201
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error":f"Database error: {str(e)}"}), 500
     
+    company = Company.query.filter_by(id=data['company_id'], user_id=current_user_id).first()
+    if not company: return jsonify({"error": "Company not found"}), 404
+    
+    new_contact = Contact(name=data['name'], email=data.get('email'), phone=data.get('phone'), company_id=data['company_id'])
+    db.session.add(new_contact)
+    db.session.commit()
+    return jsonify({"message": "Contact created"}), 201
+
 @app.route('/api/companies/<int:company_id>/contacts', methods=['GET'])
-def get_contacts_for_company(company_id):
-    company = Company.query.get(company_id)
-    if not company:
-        return jsonify({"error":f"Company with the id {company_id} does not exist "}), 404
-    contacts = company.contacts
-    contact_list = []
-    for contact in contacts:
-        contact_data = {
-            'id':contact.id,
-            "name": contact.name,
-            "email": contact.email,
-            "phone": contact.phone,
-            "company_id": contact.company_id
-        }
-        contact_list.append(contact_data)
-    return jsonify(contact_list), 200
+@jwt_required()
+def get_contacts(company_id):
+    current_user_id = get_jwt_identity()
+    company = Company.query.filter_by(id=company_id, user_id=current_user_id).first()
+    if not company: return jsonify({"error": "Not found"}), 404
+    
+    return jsonify([{
+        "id": c.id, "name": c.name, "email": c.email, "phone": c.phone
+    } for c in company.contacts]), 200
 
 @app.route('/api/contacts/<int:contact_id>', methods=['PUT'])
+@jwt_required()
 def update_contact(contact_id):
-    contact = Contact.query.get(contact_id)
-    if not contact:
-        return jsonify({"error": f"Contact with id {contact_id} not found"}), 404
-    data = request.json 
+    current_user_id = get_jwt_identity()
+    contact = Contact.query.join(Company).filter(
+        Contact.id == contact_id, Company.user_id == current_user_id
+    ).first()
+    
+    if not contact: return jsonify({"error": "Not found"}), 404
+    
+    data = request.json
     contact.name = data.get('name', contact.name)
     contact.email = data.get('email', contact.email)
     contact.phone = data.get('phone', contact.phone)
-    try:
-        db.session.commit()
-        return jsonify({"message": "Contact updated successfully"}), 200
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": f"Database error: {str(e)}"}), 500
-    
-@app.route('/api/contacts/<int:contact_id>', methods=['DELETE'])
-def delete_contact(contact_id):
-    contact = Contact.query.get(contact_id)
-    if not contact:
-        return jsonify({"error": f"Contact with id {contact_id} not found"}), 404
-    try:
-        db.session.delete(contact)
-        db.session.commit()
-        return jsonify({"message": "Contact deleted successfully"}), 200
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": f"Database error: {str(e)}"}), 500
-    
+    db.session.commit()
+    return jsonify({"message": "Updated"}), 200
 
-# --- Run the App ---
+@app.route('/api/contacts/<int:contact_id>', methods=['DELETE'])
+@jwt_required()
+def delete_contact(contact_id):
+    current_user_id = get_jwt_identity()
+    contact = Contact.query.join(Company).filter(
+        Contact.id == contact_id, Company.user_id == current_user_id
+    ).first()
+    
+    if not contact: return jsonify({"error": "Not found"}), 404
+    
+    db.session.delete(contact)
+    db.session.commit()
+    return jsonify({"message": "Deleted"}), 200
+
+# --- Main ---
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)

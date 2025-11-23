@@ -1,20 +1,31 @@
-from db import db  
+from db import db
 from sqlalchemy.sql import func
 import datetime
 
 
+class User(db.Model):
+    __tablename__ = "user"
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(256), nullable=False)
+    companies = db.relationship('Company', backref='user', lazy=True, cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f'<User {self.username}>'
+
 class Company(db.Model):
     __tablename__ = "company"
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(120), unique=True, nullable=False)
+    name = db.Column(db.String(120), nullable=False)
     address = db.Column(db.String(250), nullable=True)
     website_url = db.Column(db.String(500), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     applications = db.relationship('JobApplication', backref='company', lazy=True, cascade="all, delete-orphan")
     contacts = db.relationship('Contact', backref='company', lazy=True, cascade="all, delete-orphan")
 
     def __repr__(self):
         return f'<Company {self.name}>'
-
 
 class JobApplication(db.Model):
     __tablename__ = "job_application"
@@ -23,13 +34,12 @@ class JobApplication(db.Model):
     status = db.Column(db.String(50), default='To Apply') 
     application_date = db.Column(db.DateTime, nullable=True)
     notes = db.Column(db.Text, nullable=True)
-    job_url = db.Column(db.String(500), nullable=True)
+    job_url = db.Column(db.String(500), nullable=True)   
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     resumes = db.relationship('Resume', backref='job_application', lazy=True, cascade="all, delete-orphan")
 
     def __repr__(self):
         return f'<JobApplication {self.job_title}>'
-
 
 class Resume(db.Model):
     __tablename__ = "resume"
@@ -41,7 +51,6 @@ class Resume(db.Model):
 
     def __repr__(self):
         return f'<Resume {self.filename}>'
-
 
 class Contact(db.Model):
     __tablename__ = "contact"
