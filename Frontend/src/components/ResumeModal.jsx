@@ -31,22 +31,19 @@ function ResumeModal({ isOpen, onClose, applicationId, jobTitle }) {
 
     setIsUploading(true)
     
-    // Create a FormData object (Required for sending files!)
     const formData = new FormData()
     formData.append('file', selectedFile)
 
     try {
       const res = await fetch(`https://job-application-tracker-3n97.onrender.com/api/applications/${applicationId}/resumes`, {
         method: 'POST',
-        // Note: No Content-Type header here. fetch adds it automatically for FormData
         body: formData,
       })
 
       if (res.ok) {
-        setSelectedFile(null) // Clear input
-        // Reset the file input manually
+        setSelectedFile(null) 
         document.getElementById('fileInput').value = ""
-        fetchResumes() // Refresh list
+        fetchResumes() 
       } else {
         alert("Upload failed")
       }
@@ -66,7 +63,7 @@ function ResumeModal({ isOpen, onClose, applicationId, jobTitle }) {
         method: 'DELETE'
       })
       if (res.ok) {
-        fetchResumes() // Refresh list
+        fetchResumes() 
       }
     } catch (error) {
       console.error("Delete error:", error)
@@ -76,27 +73,27 @@ function ResumeModal({ isOpen, onClose, applicationId, jobTitle }) {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-gray-800">Resumes for: {jobTitle}</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">✕</button>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 transform transition-all">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold text-gray-900">Resumes for: {jobTitle}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">✕</button>
         </div>
 
         {/* Upload Section */}
-        <form onSubmit={handleUpload} className="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Upload New Resume (PDF/Doc)</label>
-          <div className="flex gap-2">
+        <form onSubmit={handleUpload} className="mb-6 bg-gray-50 p-4 rounded-xl border border-gray-200">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Upload New Resume (PDF/Doc)</label>
+          <div className="flex gap-3">
             <input 
               id="fileInput"
               type="file" 
               onChange={(e) => setSelectedFile(e.target.files[0])}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-colors cursor-pointer"
             />
             <button 
               type="submit" 
               disabled={!selectedFile || isUploading}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:bg-gray-400"
+              className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
             >
               {isUploading ? '...' : 'Upload'}
             </button>
@@ -105,28 +102,49 @@ function ResumeModal({ isOpen, onClose, applicationId, jobTitle }) {
 
         {/* List Section */}
         <div>
-          <h3 className="text-sm font-bold text-gray-700 mb-2">Attached Files</h3>
+          <h3 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">Attached Files</h3>
           {resumes.length === 0 ? (
-            <p className="text-sm text-gray-500 italic">No resumes uploaded yet.</p>
+            <p className="text-sm text-gray-400 italic text-center py-4">No resumes uploaded yet.</p>
           ) : (
-            <ul className="space-y-2">
+            <ul className="space-y-3">
               {resumes.map(resume => (
-                <li key={resume.id} className="flex justify-between items-center bg-gray-50 p-2 rounded border border-gray-100">
-                  <div className="truncate max-w-[70%]">
-                    {/* We only show the filename part of the path for cleanliness */}
-                    <p className="text-sm text-gray-800 truncate">
-                      📄 {resume.path.split(/[\\/]/).pop()} 
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {new Date(resume.upload_date).toLocaleDateString()}
-                    </p>
+                <li key={resume.id} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-200 hover:border-indigo-200 transition-colors">
+                  
+                  {/* File Info */}
+                  <div className="truncate max-w-[50%] flex items-center gap-2">
+                    <span className="text-xl">📄</span>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 truncate" title={resume.filename || resume.path}>
+                       {(resume.filename || resume.path).split(/[\\/]/).pop().split('_').slice(0, 2).join('_')}...pdf 
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(resume.upload_date).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
-                  <button 
-                    onClick={() => handleDelete(resume.id)}
-                    className="text-red-500 text-xs hover:underline hover:text-red-700"
-                  >
-                    Delete
-                  </button>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2">
+                    {/* VIEW BUTTON */}
+                    <a 
+                      href={`https://job-application-tracker-3n97.onrender.com/api/resumes/${resume.id}/download`}
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="p-2 text-indigo-600 bg-indigo-50 rounded-md hover:bg-indigo-100 transition-colors"
+                      title="View PDF"
+                    >
+                      👁️
+                    </a>
+
+                    {/* DELETE BUTTON */}
+                    <button 
+                      onClick={() => handleDelete(resume.id)}
+                      className="p-2 text-rose-600 bg-rose-50 rounded-md hover:bg-rose-100 transition-colors"
+                      title="Delete File"
+                    >
+                      🗑️
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
