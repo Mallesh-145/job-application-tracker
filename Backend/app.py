@@ -1,10 +1,10 @@
-# app.py
+import io
 import os
-from flask import Flask , request , jsonify , send_from_directory
+from flask import Flask , request , jsonify , send_file
 import datetime 
 from dotenv import load_dotenv
-from db import db  # Import our 'db' object
-from flask_migrate import Migrate # Import Migrate
+from db import db  
+from flask_migrate import Migrate
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
@@ -26,12 +26,9 @@ UPLOAD_FOLDER = os.path.join(app.root_path, 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# --- Initialize Extensions ---
 db.init_app(app) 
 migrate = Migrate(app, db)
 
-# --- Import Models ---
-# We must import the models *after* db is initialized
 from models import Company, JobApplication, Resume, Contact
 
 # --- Your Routes ---
@@ -60,7 +57,7 @@ def create_company():
             "name": new_company.name
         }), 201
     except Exception as e:
-        db.session.rollback() # Rollback the session in case of error
+        db.session.rollback()
         return jsonify({"error": f"Database error: {str(e)}"}), 500
    
 @app.route('/api/companies', methods=['GET'])
@@ -239,36 +236,53 @@ def delete_application(application_id):
 def upload_resume(application_id):
     application = JobApplication.query.get(application_id)
     if not application:
-        return jsonify({"error":f"Application with id {application_id} does not exist "})
+        return jsonify({"error": f"Application with id {application_id} not found"}), 404
+        
     if 'file' not in request.files:
-        return jsonify({"error":"no file is part of the request to upload"}), 400
+        return jsonify({"error": "No file part"}), 400
+        
     file = request.files['file']
     if file.filename == '':
-        return jsonify({"error":"No selected file"}), 400
+        return jsonify({"error": "No selected file"}), 400
+        
     if file:
-        original_filename = secure_filename(file.filename)
-        name,extension = os.path.splitext(original_filename)
-        version_number = len(application.resumes)+1
-        unique_filename = f"{name}_app{application_id}_v{version_number}{extension}"
-        save_path = os.path.join(app.config['UPLOAD_FOLDER'],unique_filename)
-        file.save(save_path)
+        filename = secure_filename(file.filename)
+        file_data = file.read() 
+        
         new_resume = Resume(
-            path = save_path,
-            application_id = application_id
+            filename=filename,
+            data=file_data,  # Store the bytes directly
+            application_id=application_id
         )
+        
         try:
             db.session.add(new_resume)
-            db.session.flush()
             db.session.commit()
+            
             return jsonify({
                 "message": "File uploaded successfully",
                 "resume_id": new_resume.id,
-                "path": new_resume.path
+                "filename": new_resume.filename
             }), 201
+            
         except Exception as e:
             db.session.rollback()
-            return jsonify({"error":f"Database error {str(e)}"}),500
-    return jsonify({"error":"File upload failed"}), 500
+            return jsonify({"error": f"Database error: {str(e)}"}), 500
+    
+@app.route('/api/resumes/<int:resume_id>/download', methods=['GET'])
+def download_resume(resume_id):
+    try:
+        resume = Resume.query.get(resume_id)
+        if not resume:
+            return jsonify({"error": "Resume not found"}), 404
+        return send_file(
+            io.BytesIO(resume.data),
+            download_name=resume.filename,
+            as_attachment=False 
+        )
+        
+    except Exception as e:
+        return jsonify({"error": f"Error sending file: {str(e)}"}), 500
     
 @app.route('/api/applications/<int:application_id>/resumes', methods=['GET'])
 def get_resumes(application_id):
@@ -280,7 +294,7 @@ def get_resumes(application_id):
     for resume in resumes:
         resume_data = {
             "id" : resume.id,
-            "path": resume.path,
+            "path": resume.filename,
             "upload_date": resume.upload_date,
             "application_id": resume.application_id
         }
