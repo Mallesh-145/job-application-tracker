@@ -12,7 +12,6 @@ function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
 
-
   useEffect(() => {
     setUsername('')
     setPassword('')
@@ -35,7 +34,7 @@ function Login() {
 
       if (response.ok) {
         login(data.token, data.username)
-        navigate('/') // Go to Dashboard
+        navigate('/') 
       } else {
         setError(data.error || 'Login failed')
       }
@@ -48,7 +47,7 @@ function Login() {
 
   return (
     <div className="min-h-screen flex bg-slate-900">
-      {/* LEFT SIDE: The Art / Branding */}
+      {/* LEFT SIDE: The Art */}
       <div className="hidden lg:flex lg:w-1/2 relative items-center justify-center overflow-hidden bg-indigo-950">
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-700 to-slate-900 opacity-90"></div>
         <div className="relative z-10 p-12 text-white text-center">
@@ -70,12 +69,18 @@ function Login() {
           </div>
 
           <form className="mt-8 space-y-6" onSubmit={handleSubmit} autoComplete="off">
+            {/* Hidden dummy inputs to trap some browsers' autofill attempts */}
+            <input type="text" style={{display: 'none'}} />
+            <input type="password" style={{display: 'none'}} />
+
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium text-indigo-200 block mb-1">Username</label>
                 <input
                   type="text"
                   required
+                  autoComplete="off" 
+                  name="username_field_random" 
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
@@ -83,13 +88,15 @@ function Login() {
                 />
               </div>
               
-              {/* Password Field with Eye Icon */}
+              {/* Password Field */}
               <div>
                 <label className="text-sm font-medium text-indigo-200 block mb-1">Password</label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
                     required
+                    autoComplete="new-password"
+                    name="password_field_random"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all pr-10"
