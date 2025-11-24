@@ -138,7 +138,7 @@ function CompanyPage() {
         <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/20 p-8 mb-10">
           <div className="flex flex-col md:flex-row justify-between items-start gap-4">
             <div>
-              <h1 className="text-5xl font-extrabold tracking-tight mb-3 bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600">
+              <h1 className="text-5xl font-extrabold tracking-tight mb-3 pb-2 bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600">
                 {company.name}
               </h1>
               <div className="flex flex-col gap-2 text-gray-600 mt-2">
