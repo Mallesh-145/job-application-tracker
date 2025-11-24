@@ -1,16 +1,23 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 function Login() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   
   const { login } = useAuth()
   const navigate = useNavigate()
+
+
+  useEffect(() => {
+    setUsername('')
+    setPassword('')
+    setError('')
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -28,7 +35,7 @@ function Login() {
 
       if (response.ok) {
         login(data.token, data.username)
-        navigate('/') 
+        navigate('/') // Go to Dashboard
       } else {
         setError(data.error || 'Login failed')
       }
@@ -50,7 +57,6 @@ function Login() {
             "Success is not final, failure is not fatal: it is the courage to continue that counts."
           </p>
         </div>
-        {/* Abstract shapes */}
         <div className="absolute -top-24 -left-24 w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
         <div className="absolute top-1/2 right-0 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
       </div>
@@ -63,7 +69,7 @@ function Login() {
             <p className="mt-2 text-sm text-indigo-300">Please sign in to your account</p>
           </div>
 
-          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <form className="mt-8 space-y-6" onSubmit={handleSubmit} autoComplete="off">
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium text-indigo-200 block mb-1">Username</label>
@@ -76,16 +82,17 @@ function Login() {
                   placeholder="Enter your username"
                 />
               </div>
+              
               {/* Password Field with Eye Icon */}
               <div>
                 <label className="text-sm font-medium text-indigo-200 block mb-1">Password</label>
                 <div className="relative">
                   <input
-                    type={showPassword ? "text" : "password"} 
+                    type={showPassword ? "text" : "password"}
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all pr-10" // Added pr-10 for spacing
+                    className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all pr-10"
                     placeholder="••••••••"
                   />
                   <button
