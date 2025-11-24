@@ -1,20 +1,21 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from '../context/AuthContext' 
+import { useAuth } from '../context/AuthContext'
+import toast from 'react-hot-toast' 
 import Navbar from '../components/Navbar'
 import CompanyCard from '../components/CompanyCard'
 import AddCompanyModal from '../components/AddCompanyModal'
 import EditCompanyModal from '../components/EditCompanyModal'
+import DeleteConfirmModal from '../components/DeleteConfirmModal' 
 
 function Home() {
   const [companies, setCompanies] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
-  
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingCompany, setEditingCompany] = useState(null)
-
-  const { token, logout } = useAuth() 
+  const [deleteModal, setDeleteModal] = useState({ show: false, id: null })
+  const { token, logout } = useAuth()
 
   useEffect(() => {
     fetchCompanies()
@@ -47,22 +48,30 @@ function Home() {
 
   const handleCompanyAdded = () => {
     fetchCompanies()
+    toast.success("Company added successfully!")
   }
 
-  const handleDeleteCompany = async (id, e) => {
-    e.stopPropagation()
-    if (!window.confirm("Delete this company? All applications and data will be lost.")) return
+  const confirmDelete = (id, e) => {
+    e.stopPropagation() 
+    setDeleteModal({ show: true, id })
+  }
 
+  const executeDelete = async () => {
     try {
-      await fetch(`https://job-application-tracker-3n97.onrender.com/api/companies/${id}`, { 
+      const res = await fetch(`https://job-application-tracker-3n97.onrender.com/api/companies/${deleteModal.id}`, { 
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       })
-      fetchCompanies()
+      
+      if (res.ok) {
+        toast.success("Company deleted successfully!") 
+        fetchCompanies()
+      } else {
+        toast.error("Failed to delete company.")
+      }
     } catch (error) {
       console.error("Error deleting:", error)
+      toast.error("Error deleting company.")
     }
   }
 
@@ -72,11 +81,17 @@ function Home() {
     setIsEditModalOpen(true)
   }
 
+  const handleCompanyUpdated = () => {
+    fetchCompanies()
+    toast.success("Company updated successfully!")
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900">
       <Navbar />
 
       <main className="max-w-6xl mx-auto mt-12 px-6 pb-12">
+        {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-end md:items-center mb-10 gap-4">
           <div>
             <h1 className="text-4xl font-extrabold text-white tracking-tight">
@@ -93,18 +108,21 @@ function Home() {
           </button>
         </div>
 
+        {/* Loading State */}
         {isLoading && (
           <div className="flex justify-center py-20">
              <div className="text-indigo-400 font-bold animate-pulse text-lg">Loading your dashboard...</div>
           </div>
         )}
 
+        {/* Error State */}
         {error && (
           <div className="bg-rose-500/10 border border-rose-500/50 text-rose-200 px-6 py-4 rounded-xl mb-6">
             <strong>Error:</strong> {error} - Is your Flask server running?
           </div>
         )}
 
+        {/* Content State */}
         {!isLoading && !error && (
           <>
             {companies.length === 0 ? (
@@ -125,7 +143,7 @@ function Home() {
                   <CompanyCard 
                     key={company.id} 
                     company={company} 
-                    onDelete={(e) => handleDeleteCompany(company.id, e)}
+                    onDelete={(e) => confirmDelete(company.id, e)} 
                     onEdit={(e) => openEditModal(company, e)}
                   />
                 ))}
@@ -135,17 +153,28 @@ function Home() {
         )}
       </main>
 
+      {/* Add Company Modal */}
       <AddCompanyModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)}
         onCompanyAdded={handleCompanyAdded}
       />
 
+      {/* Edit Company Modal */}
       <EditCompanyModal 
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         company={editingCompany}
-        onCompanyUpdated={fetchCompanies}
+        onCompanyUpdated={handleCompanyUpdated}
+      />
+
+      {/* NEW: Delete Confirmation Modal */}
+      <DeleteConfirmModal 
+        isOpen={deleteModal.show}
+        onClose={() => setDeleteModal({ show: false, id: null })}
+        onConfirm={executeDelete}
+        title="Delete Company?"
+        message="This will permanently delete the company and all related applications. This action cannot be undone."
       />
     </div>
   )
