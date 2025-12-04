@@ -242,18 +242,37 @@ Full-stack Job Application Tracker developed using React (Vite) for the frontend
 ## Connect
 
 <p align="center">
-  <a href="https://www.linkedin.com/in/mallesh-annareddy" target="_blank" rel="noopener noreferrer">
-    <img src="https://img.shields.io/badge/LinkedIn-Mallesh%20Annareddy-0077B5?style=for-the-badge&logo=linkedin">
+
+  <!-- LinkedIn Profile -->
+  <a href="https://www.linkedin.com/in/mallesh-annareddy" target="_blank" rel="noopener">
+    <img src="https://img.shields.io/badge/LinkedIn-Mallesh%20Annareddy-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white">
   </a>
-  <a href="https://github.com/mallesh-145" target="_blank" rel="noopener noreferrer">
-    <img src="https://img.shields.io/badge/GitHub-mallesh--145-181717?style=for-the-badge&logo=github">
+
+  <!-- LinkedIn Message Badge -->
+  <a href="https://www.linkedin.com/in/mallesh-annareddy" target="_blank" rel="noopener" style="margin-left:8px;">
+    <img src="https://img.shields.io/badge/Message%20Me%20on%20LinkedIn-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white">
   </a>
+
 </p>
 
-<p align="center" style="font-size:12px; color:#666;">
-  <a href="mailto:mallesannareddy508@gmail.com">mallesannareddy508@gmail.com</a> · <a href="https://github.com/mallesh-145">github.com/mallesh-145</a>
+<p align="center">
+
+  <!-- Gmail Compose Link -->
+  <a href="https://mail.google.com/mail/?view=cm&fs=1&to=mallesannareddy508@gmail.com" target="_blank" rel="noopener">
+    <img src="https://img.shields.io/badge/Email-mallesannareddy508%40gmail.com-D14836?style=for-the-badge&logo=gmail&logoColor=white">
+  </a>
+
+  <!-- GitHub -->
+  <a href="https://github.com/mallesh-145" target="_blank" rel="noopener" style="margin-left:8px;">
+    <img src="https://img.shields.io/badge/GitHub-mallesh--145-181717?style=for-the-badge&logo=github&logoColor=white">
+  </a>
+
 </p>
 
-<p align="center" style="font-size:12px; color:#999; margin-top:4px;">
+<br>
+
+<p align="center" style="font-size:12px; color:#888;">
   If this project helped you, a ⭐ is appreciated.
 </p>
+
+
