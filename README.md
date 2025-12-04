@@ -1,6 +1,6 @@
 
 <p align="center">
-  <img src="Frontend/Screenshots/banner.png" width="900" style="border-radius:12px;">
+  <img src="Frontend/Screenshots/banner1.png" width="900" style="border-radius:12px;">
 </p>
 
 <h1 align="center" style="font-weight:700; font-size:32px; margin-top:20px;">
