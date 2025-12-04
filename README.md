@@ -1,3 +1,4 @@
+
 <p align="center">
   <img src="Frontend/Screenshots/banner.png" width="900" style="border-radius:12px;">
 </p>
@@ -22,78 +23,72 @@
 
 ---
 
-## ✨ Features
+## ✨ Highlights
 
-- 🔐 **JWT-secured authentication**
-- 🏢 **Company management dashboard**
-- 💼 **Job application tracking**
-- 📎 **Resume upload with versioning**
-- 👥 **Contact directory for each company**
-- 📝 **Notes + status metadata**
-- ⚡ **Fast, reactive UI (React + Vite)**
-- 🗄 **Database migrations with Flask-Migrate**
-- 💾 **PostgreSQL-backed persistence**
+- 🔐 Secure JWT authentication and bcrypt password hashing  
+- 🏢 Company management and contact directory  
+- 💼 Job application CRUD with status tracking and notes  
+- 📎 Resume upload with versioning (binary storage)  
+- ⚡ Fast, responsive UI built with React + Vite  
+- 🗄 Database migrations & schema management with Flask-Migrate  
 
 ---
 
 ## 📸 Screenshots
 
-### 🟣 **Hero Banner**
 <p align="center">
   <img src="Frontend/Screenshots/banner.png" width="900" style="border-radius:12px;">
 </p>
-
-<br>
 
 <table align="center">
   <tr>
     <td align="center">
       <img src="Frontend/Screenshots/login.png" width="420">
-      <br><sub><b>🔐 Sign In Screen</b></sub>
+      <br><sub><b>🔐 Sign In</b><br><small>Secure login with validation</small></sub>
     </td>
     <td align="center">
       <img src="Frontend/Screenshots/sign-up.png" width="420">
-      <br><sub><b>🆕 Create Account</b></sub>
+      <br><sub><b>🆕 Create Account</b><br><small>Register new user</small></sub>
     </td>
   </tr>
 
   <tr>
     <td align="center">
       <img src="Frontend/Screenshots/main-dashboard.png" width="420">
-      <br><sub><b>📊 Main Dashboard</b></sub>
+      <br><sub><b>📊 Main Dashboard</b><br><small>Overview: apps, stats, quick actions</small></sub>
     </td>
     <td align="center">
       <img src="Frontend/Screenshots/company-list.png" width="420">
-      <br><sub><b>🏢 Companies Overview</b></sub>
+      <br><sub><b>🏢 Companies Overview</b><br><small>List & manage companies</small></sub>
     </td>
   </tr>
 
   <tr>
     <td align="center">
       <img src="Frontend/Screenshots/add-company.png" width="420">
-      <br><sub><b>➕ Add New Company</b></sub>
+      <br><sub><b>➕ Add Company</b><br><small>Create company profile</small></sub>
     </td>
     <td align="center">
       <img src="Frontend/Screenshots/add-application.png" width="420">
-      <br><sub><b>📝 Add Job Application</b></sub>
+      <br><sub><b>📝 Add Application</b><br><small>Attach job details & status</small></sub>
     </td>
   </tr>
 
   <tr>
     <td align="center">
       <img src="Frontend/Screenshots/view-applications.png" width="420">
-      <br><sub><b>📂 Applications List</b></sub>
+      <br><sub><b>📂 Applications List</b><br><small>Filter, sort, and review apps</small></sub>
     </td>
     <td align="center">
       <img src="Frontend/Screenshots/resume-upload.png" width="420">
-      <br><sub><b>📎 Resume Upload & Versions</b></sub>
+      <br><sub><b>📎 Resume Upload</b><br><small>Upload and version resumes</small></sub>
     </td>
   </tr>
 
   <tr>
     <td align="center">
       <img src="Frontend/Screenshots/add-contact.png" width="420">
-      <br><sub><b>📇 Add Contact</b></sub>
+      <br><sub><b>📇 Add Contact</b><br><small>Store recruiter / contact details</small></sub>
     </td>
   </tr>
 </table>
@@ -102,31 +97,29 @@
 
 ## 🧰 Tech Stack
 
-### **Frontend**
-- React 19  
+**Frontend**
+- React 19 (Vite)  
 - React Router  
-- Vite  
-- TailwindCSS (for styling utilities)  
+- TailwindCSS  
 - react-hot-toast  
 
-### **Backend**
-- Flask  
+**Backend**
+- Python 3.x, Flask  
 - Flask-JWT-Extended  
-- Flask-SQLAlchemy  
-- Flask-Migrate  
 - Flask-Bcrypt  
-- psycopg2 (PostgreSQL driver)  
+- Flask-SQLAlchemy  
+- Flask-Migrate / Alembic  
+- psycopg2-binary  
 
-### **Database**
+**Database**
 - PostgreSQL  
 - SQLAlchemy ORM  
-- Alembic migrations  
 
 ---
 
-## ⚙️ Installation & Setup
+## ⚙️ Quick Start
 
-### **1. Frontend**
+### Frontend
 ```bash
 cd Frontend
 npm install
@@ -139,32 +132,33 @@ npm run build
 npm run preview
 ```
 
----
-
-### **2. Backend**
+### Backend
 ```bash
 cd Backend
 python -m venv venv
-source venv/bin/activate       # Mac/Linux
-.\venv\Scripts\Activate.ps1    # Windows
+source venv/bin/activate  # macOS/Linux
+.env\Scripts\Activate.ps1  # Windows
+
 pip install -r requirements.txt
 ```
 
-Environment:
+Create `files.env`:
 ```
-DATABASE_URL=postgresql+psycopg2://postgres:password@localhost:5432/JobTrackerDB
-JWT_SECRET_KEY=your_secret_key
+DATABASE_URL=postgresql+psycopg2://postgres:yourpassword@localhost:5432/JobTrackerDB
+JWT_SECRET_KEY=your_jwt_secret
 FLASK_ENV=development
+UPLOAD_FOLDER=uploads
 ```
 
 Migrations:
 ```bash
+export FLASK_APP=app.py
 flask db init
 flask db migrate -m "init"
 flask db upgrade
 ```
 
-Run server:
+Run:
 ```bash
 python app.py
 ```
@@ -173,29 +167,30 @@ python app.py
 
 ## 🔌 API Summary
 
-### **Auth**
+### Auth
 - POST `/api/auth/register`
 - POST `/api/auth/login`
 
-### **Companies**
+### Companies
 - POST `/api/companies`
 - GET `/api/companies`
+- GET `/api/companies/:id`
 - PUT `/api/companies/:id`
 - DELETE `/api/companies/:id`
 
-### **Applications**
+### Applications
 - POST `/api/applications`
 - GET `/api/companies/:id/applications`
 - PUT `/api/applications/:id`
 - DELETE `/api/applications/:id`
 
-### **Resumes**
+### Resumes
 - POST `/api/applications/:id/resumes`
 - GET `/api/applications/:id/resumes`
 - GET `/api/resumes/:id/download`
 - DELETE `/api/resumes/:id`
 
-### **Contacts**
+### Contacts
 - POST `/api/contacts`
 - GET `/api/companies/:id/contacts`
 - PUT `/api/contacts/:id`
@@ -203,31 +198,62 @@ python app.py
 
 ---
 
-## 📝 Resume Summary (Copy for your CV)
-
-Developed a full-stack Job Application Tracker using React (Vite) and Flask, enabling users to manage companies, job applications, contacts, and resume versions with secure JWT authentication. Implemented PostgreSQL persistence, ORM models using SQLAlchemy, and automated migrations with Flask-Migrate. Built a clean, responsive UI with real-time feedback and fully modular frontend components.
-
----
-
 ## 📁 Project Structure
 
 ```
-Frontend/
-  ├─ Screenshots/
-  ├─ src/
-  ├─ public/
-  └─ package.json
-
-Backend/
-  ├─ app.py
-  ├─ models.py
-  ├─ db.py
-  ├─ migrations/
-  └─ requirements.txt
+job-application-tracker/
+├─ Frontend/
+│  ├─ Screenshots/
+│  ├─ public/
+│  ├─ src/
+│  │  ├─ assets/
+│  │  ├─ components/
+│  │  ├─ context/
+│  │  ├─ pages/
+│  │  ├─ App.jsx
+│  │  └─ main.jsx
+│  ├─ package.json
+│  ├─ vite.config.js
+│  └─ tailwind.config.js
+│
+├─ Backend/
+│  ├─ app.py
+│  ├─ db.py
+│  ├─ models.py
+│  ├─ migrations/
+│  ├─ uploads/
+│  ├─ requirements.txt
+│  ├─ files.env
+│  ├─ reset_table.py
+│  └─ test.http
+│
+├─ .gitignore
+└─ README.md
 ```
 
 ---
 
+## Professional Summary
+
+Full-stack Job Application Tracker developed using React (Vite) for the frontend and Flask for backend APIs. Implemented secure JWT authentication, CRUD operations for companies, applications, resumes, and contacts, alongside resume versioning and file management. Built modular React components, structured REST endpoints, and ensured consistent database migrations using SQLAlchemy and Flask-Migrate. Designed for clarity, maintainability, and real-world job-tracking workflows—demonstrating full-stack capability, API design, and scalable backend development.
+
+---
+
+## Connect
+
 <p align="center">
-  Made with ❤️ by Mallesh (Echo)
+  <a href="https://www.linkedin.com/in/mallesh-annareddy" target="_blank" rel="noopener noreferrer">
+    <img src="https://img.shields.io/badge/LinkedIn-Mallesh%20Annareddy-0077B5?style=for-the-badge&logo=linkedin">
+  </a>
+  <a href="https://github.com/mallesh-145" target="_blank" rel="noopener noreferrer">
+    <img src="https://img.shields.io/badge/GitHub-mallesh--145-181717?style=for-the-badge&logo=github">
+  </a>
+</p>
+
+<p align="center" style="font-size:12px; color:#666;">
+  <a href="mailto:mallesannareddy508@gmail.com">mallesannareddy508@gmail.com</a> · <a href="https://github.com/mallesh-145">github.com/mallesh-145</a>
+</p>
+
+<p align="center" style="font-size:12px; color:#999; margin-top:4px;">
+  If this project helped you, a ⭐ is appreciated.
 </p>
