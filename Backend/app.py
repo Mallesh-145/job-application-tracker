@@ -257,11 +257,12 @@ def upload_resume(app_id):
     
     if not application: return jsonify({"error": "Application not found"}), 404
     
-    file = request.files['file']
-    if file:
+    file = request.files.get('file')
+    if file and file.filename != '':
         filename = secure_filename(file.filename)
+        name, ext = os.path.splitext(filename)
         version = len(application.resumes) + 1
-        unique_name = f"{os.path.splitext(filename)[0]}_v{version}.pdf"
+        unique_name = f"{name}_v{version}{ext}"
         new_resume = Resume(
             filename=unique_name,
             data=file.read(),
@@ -295,9 +296,11 @@ def get_resumes(app_id):
 def download_resume(resume_id):
     resume = Resume.query.get(resume_id)
     if not resume: return jsonify({"error": "Not found"}), 404
+    mimetype = 'application/pdf' if resume.filename.lower().endswith('.pdf') else 'application/octet-stream'
     
     return send_file(
         io.BytesIO(resume.data),
+        mimetype=mimetype,
         download_name=resume.filename,
         as_attachment=False
     )
