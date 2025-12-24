@@ -76,8 +76,7 @@ function EditApplicationModal({ isOpen, onClose, application, onApplicationUpdat
             <label className="block text-sm font-semibold text-indigo-200 mb-2">Job Title</label>
             <input 
               type="text" required value={jobTitle} onChange={(e) => setJobTitle(e.target.value)}
-              className="w-full rounded-xl bg-white/5 border border-white/10 p-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
-            />
+             className="w-full rounded-xl bg-slate-800 border border-slate-700 p-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none"></input>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
