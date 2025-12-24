@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
+import toast from 'react-hot-toast'
 
 function EditContactModal({ isOpen, onClose, contact, onContactUpdated }) {
   const { token } = useAuth()
@@ -34,22 +35,23 @@ function EditContactModal({ isOpen, onClose, contact, onContactUpdated }) {
       })
 
       if (response.ok) {
+        toast.success("Contact Updated!")
         onContactUpdated()
         onClose()
       } else {
-        alert("Failed to update contact")
+        toast.error("Failed to update contact")
       }
     } catch (error) {
       console.error("Error:", error)
-      alert("Error updating contact")
+      toast.error("Connection Error")
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg p-8 transform transition-all">
         <h2 className="text-2xl font-bold text-gray-800 mb-4">Edit Contact</h2>
         
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -77,8 +79,8 @@ function EditContactModal({ isOpen, onClose, contact, onContactUpdated }) {
 
           <div className="flex justify-end space-x-3 mt-6">
             <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">Cancel</button>
-            <button type="submit" disabled={isSubmitting} className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-300">
-              {isSubmitting ? 'Update' : 'Update Contact'}
+            <button type="submit" disabled={isSubmitting} className="px-6 py-2.5 text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:bg-indigo-900/50 shadow-lg shadow-indigo-500/20 font-semibold transition-all">
+              {isSubmitting ? 'Updating...' : 'Update Contact'}
             </button>
           </div>
         </form>

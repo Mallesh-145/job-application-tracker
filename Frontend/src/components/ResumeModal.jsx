@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
+import DeleteConfirmModal from './DeleteConfirmModal'
 
 function ResumeModal({ isOpen, onClose, applicationId, jobTitle }) {
   const { token } = useAuth()
   const [resumes, setResumes] = useState([])
   const [selectedFile, setSelectedFile] = useState(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [deleteModal, setDeleteModal] = useState({ show: false, id: null });
 
   useEffect(() => {
     if (isOpen && applicationId) {
@@ -31,6 +33,11 @@ function ResumeModal({ isOpen, onClose, applicationId, jobTitle }) {
   const handleUpload = async (e) => {
     e.preventDefault()
     if (!selectedFile) return
+
+    if (!selectedFile.name.toLowerCase().endswith('.pdf')) {
+      alert("Only PDF files are allowed. Please convert your document to PDF and try again.")
+      return
+    }
 
     setIsUploading(true)
     
@@ -60,21 +67,23 @@ function ResumeModal({ isOpen, onClose, applicationId, jobTitle }) {
     }
   }
 
-  const handleDelete = async (resumeId) => {
-    if (!confirm("Are you sure you want to delete this file?")) return
+  const openDeleteConfirm = (resumeId) => {
+    setDeleteModal({ show: true, id: resumeId })
+  }
 
+  const executeDelete = async () => {
     try {
-      const res = await fetch(`https://job-application-tracker-3n97.onrender.com/api/resumes/${resumeId}`, {
+      const res = await fetch(`https://job-application-tracker-3n97.onrender.com/api/resumes/${deleteModal.id}`, {
         method: 'DELETE',
-        headers: { 
-        'Authorization': `Bearer ${token}` 
-      },
+        headers: { 'Authorization': `Bearer ${token}` },
       })
       if (res.ok) {
         fetchResumes() 
       }
     } catch (error) {
       console.error("Delete error:", error)
+    } finally {
+        setDeleteModal({ show: false, id: null })
     }
   }
 
@@ -90,11 +99,12 @@ function ResumeModal({ isOpen, onClose, applicationId, jobTitle }) {
 
         {/* Upload Section */}
         <form onSubmit={handleUpload} className="mb-6 bg-gray-50 p-4 rounded-xl border border-gray-200">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Upload New Resume (PDF/Doc)</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Upload New Resume (PDF Only)</label>
           <div className="flex gap-3">
             <input 
               id="fileInput"
               type="file" 
+              accept=".pdf"
               onChange={(e) => setSelectedFile(e.target.files[0])}
               className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-colors cursor-pointer"
             />
@@ -146,7 +156,7 @@ function ResumeModal({ isOpen, onClose, applicationId, jobTitle }) {
 
                     {/* DELETE BUTTON */}
                     <button 
-                      onClick={() => handleDelete(resume.id)}
+                      onClick={() => openDeleteConfirm(resume.id)}
                       className="p-2 text-rose-600 bg-rose-50 rounded-md hover:bg-rose-100 transition-colors"
                       title="Delete File"
                     >
@@ -158,6 +168,14 @@ function ResumeModal({ isOpen, onClose, applicationId, jobTitle }) {
             </ul>
           )}
         </div>
+
+        <DeleteConfirmModal 
+            isOpen={deleteModal.show}
+            onClose={() => setDeleteModal({ show: false, id: null })}
+            onConfirm={executeDelete}
+            title="Delete Resume?"
+            message="Are you sure you want to delete this resume? This cannot be undone."
+        />
       </div>
     </div>
   )

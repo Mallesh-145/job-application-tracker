@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import toast from 'react-hot-toast'
 
 function AddCompanyModal({ isOpen, onClose, onCompanyAdded }) {
   const { token } = useAuth()
@@ -25,25 +26,26 @@ function AddCompanyModal({ isOpen, onClose, onCompanyAdded }) {
       })
 
       if (response.ok) {
+        toast.success("New Company Added")
         setName('')
         setAddress('')
         setWebsiteUrl('')
         onCompanyAdded() 
         onClose()
       } else {
-        alert("Failed to add company")
+        toast.error("Failed to add company")
       }
     } catch (error) {
       console.error("Error:", error)
-      alert("Error adding company")
+      toast.error("Error occured while adding company")
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg p-8 transform transition-all">
         <h2 className="text-2xl font-bold text-gray-800 mb-4">Add New Company</h2>
         
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -92,7 +94,7 @@ function AddCompanyModal({ isOpen, onClose, onCompanyAdded }) {
             <button 
               type="submit" 
               disabled={isSubmitting}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-300"
+              className="px-6 py-2.5 text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:bg-indigo-900/50 shadow-lg shadow-indigo-500/20 font-semibold transition-all"
             >
               {isSubmitting ? 'Adding...' : 'Add Company'}
             </button>

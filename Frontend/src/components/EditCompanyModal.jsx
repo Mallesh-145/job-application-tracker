@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
+import toast from 'react-hot-toast'
 
 function EditCompanyModal({ isOpen, onClose, company, onCompanyUpdated }) {
   const { token } = useAuth()
@@ -34,6 +35,7 @@ function EditCompanyModal({ isOpen, onClose, company, onCompanyUpdated }) {
       })
 
       if (response.ok) {
+        toast.success("Company Updated!")
         onCompanyUpdated()
         onClose()
       } else {
@@ -41,15 +43,15 @@ function EditCompanyModal({ isOpen, onClose, company, onCompanyUpdated }) {
       }
     } catch (error) {
       console.error("Error:", error)
-      alert("Error updating company")
+      toast.error("Connection Error")
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg p-8 transform transition-all">
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Edit Company</h2>
         
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -77,7 +79,7 @@ function EditCompanyModal({ isOpen, onClose, company, onCompanyUpdated }) {
 
           <div className="flex justify-end space-x-3 mt-8">
             <button type="button" onClick={onClose} className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50">Cancel</button>
-            <button type="submit" disabled={isSubmitting} className="px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:bg-indigo-400">
+            <button type="submit" disabled={isSubmitting} className="px-6 py-2.5 text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:bg-indigo-900/50 shadow-lg shadow-indigo-500/20 font-semibold transition-all">
               {isSubmitting ? 'Saving...' : 'Save Changes'}
             </button>
           </div>

@@ -79,6 +79,8 @@ function Home() {
     } catch (error) {
       console.error("Error deleting:", error)
       toast.error("Error deleting company.")
+    } finally {
+      setDeleteModal({ show: false, id: null})
     }
   }
 

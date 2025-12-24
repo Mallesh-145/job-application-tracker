@@ -13,8 +13,8 @@ function CompanyCard({ company, onDelete, onEdit }) {
       onClick={handleCardClick}
       className="group bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 transition-all duration-300 cursor-pointer relative"
     >
-      {/* Action Buttons (Top Right) - Only visible on hover for cleaner look */}
-      <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
+  
+      <div className="absolute top-4 right-4 flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
         <button 
           onClick={onEdit}
           className="p-1.5 rounded-full bg-gray-100 text-gray-500 hover:bg-indigo-100 hover:text-indigo-600 transition-colors"
