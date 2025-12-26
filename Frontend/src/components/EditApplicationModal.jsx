@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
-import toast from 'react-hot-toast' // 🛡️ Integrated Toast
+import toast from 'react-hot-toast' 
 
 function EditApplicationModal({ isOpen, onClose, application, onApplicationUpdated }) {
   const { token } = useAuth()
@@ -65,8 +65,6 @@ function EditApplicationModal({ isOpen, onClose, application, onApplicationUpdat
     }
   }
 
- // ... (Keep your existing imports and logic)
-
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
       <div className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg p-8">
@@ -88,7 +86,6 @@ function EditApplicationModal({ isOpen, onClose, application, onApplicationUpdat
                 value={status} onChange={(e) => setStatus(e.target.value)}
                 className="w-full rounded-xl bg-slate-800 border border-slate-700 p-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all cursor-pointer"
               >
-                {/* 🛡️ Ensure options also have dark backgrounds */}
                 <option className="bg-slate-900">To Apply</option>
                 <option className="bg-slate-900">Applied</option>
                 <option className="bg-slate-900">Interviewing</option>

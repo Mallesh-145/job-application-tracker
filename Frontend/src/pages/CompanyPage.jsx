@@ -8,7 +8,7 @@ import ResumeModal from '../components/ResumeModal'
 import EditApplicationModal from '../components/EditApplicationModal'
 import EditContactModal from '../components/EditContactModal'
 import DeleteConfirmModal from '../components/DeleteConfirmModal' 
-import toast from 'react-hot-toast' // 🛡️ Added missing import
+import toast from 'react-hot-toast' 
 
 function CompanyPage() {
   const { id } = useParams()
@@ -73,12 +73,10 @@ function CompanyPage() {
     setContacts(data)
   }
 
-  // 🛡️ Helper to calculate days passed
   const getDaysSince = (dateString) => {
     if (!dateString) return null;
     const appliedDate = new Date(dateString);
     const today = new Date();
-    // Calculate difference in milliseconds and convert to days
     const diffTime = Math.abs(today - appliedDate);
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)); 
     return diffDays;

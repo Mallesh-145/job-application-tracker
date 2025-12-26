@@ -53,7 +53,6 @@ function EditCompanyModal({ isOpen, onClose, company, onCompanyUpdated }) {
         
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            {/* 🛡️ HIGH CONTRAST LABEL */}
             <label className="block text-sm font-semibold text-indigo-200 mb-2">Company Name *</label>
             <input 
               type="text" required value={name} onChange={(e) => setName(e.target.value)}
