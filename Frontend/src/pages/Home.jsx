@@ -92,7 +92,7 @@ function Home() {
 
   const handleCompanyUpdated = () => {
     fetchCompanies()
-    toast.success("Company updated successfully!")
+    // toast.success("Company updated successfully!")
   }
 
   return (

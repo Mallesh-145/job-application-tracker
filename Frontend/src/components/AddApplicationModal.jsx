@@ -73,11 +73,11 @@ function AddApplicationModal({ isOpen, onClose, companyId, onApplicationAdded })
                 value={status} onChange={(e) => setStatus(e.target.value)}
                 className="w-full rounded-xl bg-slate-800 border border-slate-700 p-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all cursor-pointer"
               >
-                <option className="bg-slate-900">To Apply</option>
-                <option className="bg-slate-900">Applied</option>
-                <option className="bg-slate-900">Interviewing</option>
-                <option className="bg-slate-900">Offer</option>
-                <option className="bg-slate-900">Rejected</option>
+                <option value="To Apply" className="bg-slate-800 text-white">To Apply</option>
+                <option value="Applied" className="bg-slate-800 text-white">Applied</option>
+                <option value="Interviewing" className="bg-slate-800 text-white">Interviewing</option>
+                <option value="Offer" className="bg-slate-800 text-white">Offer</option>
+                <option value="Rejected" className="bg-slate-800 text-white">Rejected</option>
               </select>
             </div>
 
