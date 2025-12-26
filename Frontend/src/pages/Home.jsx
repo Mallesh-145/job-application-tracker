@@ -79,6 +79,8 @@ function Home() {
     } catch (error) {
       console.error("Error deleting:", error)
       toast.error("Error deleting company.")
+    } finally {
+      setDeleteModal({ show: false, id: null})
     }
   }
 
@@ -90,7 +92,7 @@ function Home() {
 
   const handleCompanyUpdated = () => {
     fetchCompanies()
-    toast.success("Company updated successfully!")
+    // toast.success("Company updated successfully!")
   }
 
   return (
