@@ -65,79 +65,72 @@ function EditApplicationModal({ isOpen, onClose, application, onApplicationUpdat
     }
   }
 
-  return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg p-8 transform transition-all">
+ // ... (Keep your existing imports and logic)
 
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+      <div className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg p-8">
         <h2 className="text-2xl font-bold text-white mb-6">Edit Application</h2>
+        
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Job Title */}
           <div>
             <label className="block text-sm font-semibold text-indigo-200 mb-2">Job Title</label>
             <input 
               type="text" required value={jobTitle} onChange={(e) => setJobTitle(e.target.value)}
-             className="w-full rounded-xl bg-slate-800 border border-slate-700 p-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none"></input>
+              className="w-full rounded-xl bg-slate-800 border border-slate-700 p-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            {/* Status */}
             <div>
               <label className="block text-sm font-semibold text-indigo-200 mb-2">Status</label>
               <select 
                 value={status} onChange={(e) => setStatus(e.target.value)}
-                className="w-full rounded-xl bg-white/5 border border-white/10 p-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all cursor-pointer"
+                className="w-full rounded-xl bg-slate-800 border border-slate-700 p-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all cursor-pointer"
               >
+                {/* 🛡️ Ensure options also have dark backgrounds */}
                 <option className="bg-slate-900">To Apply</option>
                 <option className="bg-slate-900">Applied</option>
-                <option className="bg-slate-900">Accepted</option>
                 <option className="bg-slate-900">Interviewing</option>
                 <option className="bg-slate-900">Offer</option>
                 <option className="bg-slate-900">Rejected</option>
               </select>
             </div>
 
-            {/* Date */}
             <div>
               <label className="block text-sm font-semibold text-indigo-200 mb-2">Date Applied</label>
               <input 
                 type="date" value={date} onChange={(e) => setDate(e.target.value)}
-                className="w-full rounded-xl bg-white/5 border border-white/10 p-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                className="w-full rounded-xl bg-slate-800 border border-slate-700 p-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
               />
             </div>
           </div>
 
-          {/* URL */}
           <div>
             <label className="block text-sm font-semibold text-indigo-200 mb-2">Job URL</label>
             <input 
               type="url" value={jobUrl} onChange={(e) => setJobUrl(e.target.value)}
-              className="w-full rounded-xl bg-white/5 border border-white/10 p-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+              className="w-full rounded-xl bg-slate-800 border border-slate-700 p-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
             />
           </div>
 
-          {/* Notes */}
           <div>
             <label className="block text-sm font-semibold text-indigo-200 mb-2">Notes</label>
             <textarea 
               value={notes} onChange={(e) => setNotes(e.target.value)}
               rows="3"
-              className="w-full rounded-xl bg-white/5 border border-white/10 p-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+              className="w-full rounded-xl bg-slate-800 border border-slate-700 p-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
             ></textarea>
           </div>
 
-          {/* Actions */}
           <div className="flex justify-end space-x-3 mt-8">
-            <button 
-              type="button" 
-              onClick={onClose} 
-              className="px-6 py-2.5 text-indigo-200 bg-white/5 rounded-xl hover:bg-white/10 transition-colors font-medium"
-            >
+            <button type="button" onClick={onClose} className="px-6 py-2.5 text-slate-300 bg-slate-800 rounded-xl hover:bg-slate-700 transition-colors">
               Cancel
             </button>
             <button 
               type="submit" 
-              disabled={isSubmitting} 
-              className="px-6 py-2.5 text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:bg-indigo-900/50 shadow-lg shadow-indigo-500/20 font-semibold transition-all"
+              disabled={isSubmitting}
+              className="px-6 py-2.5 text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 font-semibold transition-all"
             >
               {isSubmitting ? 'Updating...' : 'Save Changes'}
             </button>
