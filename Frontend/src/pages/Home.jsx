@@ -48,14 +48,12 @@ function Home() {
     }
   }
 
-  // Filter companies based on search
   const filteredCompanies = companies.filter(company => 
     company.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   const handleCompanyAdded = () => {
     fetchCompanies()
-    toast.success("Company added successfully!")
   }
 
   const confirmDelete = (id, e) => {
@@ -92,13 +90,10 @@ function Home() {
 
   const handleCompanyUpdated = () => {
     fetchCompanies()
-    // toast.success("Company updated successfully!")
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900">
-      <Navbar />
-
       <main className="max-w-6xl mx-auto mt-12 px-6 pb-12">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-end md:items-center mb-8 gap-4">

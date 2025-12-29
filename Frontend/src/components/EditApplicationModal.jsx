@@ -28,6 +28,8 @@ function EditApplicationModal({ isOpen, onClose, application, onApplicationUpdat
 
   if (!isOpen || !application) return null;
 
+  const today = new Date().toISOString().split('T')[0];
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsSubmitting(true)
@@ -97,7 +99,7 @@ function EditApplicationModal({ isOpen, onClose, application, onApplicationUpdat
             <div>
               <label className="block text-sm font-semibold text-indigo-200 mb-2">Date Applied</label>
               <input 
-                type="date" value={date} onChange={(e) => setDate(e.target.value)}
+                type="date" value={date} max={today} onChange={(e) => setDate(e.target.value)}
                 className="w-full rounded-xl bg-slate-800 border border-slate-700 p-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
               />
             </div>

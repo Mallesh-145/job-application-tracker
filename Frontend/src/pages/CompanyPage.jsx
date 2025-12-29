@@ -77,8 +77,11 @@ function CompanyPage() {
     if (!dateString) return null;
     const appliedDate = new Date(dateString);
     const today = new Date();
-    const diffTime = Math.abs(today - appliedDate);
+    today.setHours(0, 0, 0, 0);
+    appliedDate.setHours(0, 0, 0, 0);
+    const diffTime = today - appliedDate;
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)); 
+    if (diffDays < 0) return "Future"
     return diffDays;
   };
 
@@ -133,9 +136,7 @@ function CompanyPage() {
   if (error) return <div className="min-h-screen bg-slate-900 p-8 text-center text-rose-400">Error: {error}</div>
 
   return (
-    <div className="min-h-screen pb-12 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900">
-      <Navbar />
-      
+    <div className="min-h-screen pb-12 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900"> 
       <main className="max-w-6xl mx-auto mt-10 px-6">
         <Link to="/" className="text-indigo-300 hover:text-white mb-6 inline-flex items-center gap-2 font-medium transition-colors">
           &larr; Back to Dashboard
@@ -192,7 +193,7 @@ function CompanyPage() {
                             <p className="text-sm text-gray-400 font-medium">
                                 Applied: {app.application_date ? new Date(app.application_date).toLocaleDateString() : 'N/A'}
                             </p>
-                            {daysSince !== null && (
+                            {daysSince !== null && daysSince !== "Future" && (
                                 <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-tighter
                                 ${daysSince > 14 ? 'bg-rose-100 text-rose-600' : 'bg-indigo-50 text-indigo-500'}`}>
                                 {daysSince === 0 ? 'Today' : `${daysSince}d ago`}

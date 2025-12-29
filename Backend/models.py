@@ -2,17 +2,40 @@ from db import db
 from sqlalchemy.sql import func
 import datetime
 
-
 class User(db.Model):
     __tablename__ = "user"
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
+    is_admin = db.Column(db.Boolean, default=False) 
+    status = db.Column(db.String(20), default='active')
+    reset_token = db.Column(db.String(100), unique=True, nullable=True) 
+    reset_token_expiry = db.Column(db.DateTime, nullable=True)
     companies = db.relationship('Company', backref='user', lazy=True, cascade="all, delete-orphan")
+    audit_logs = db.relationship('AuditLog', backref='user', lazy=True, cascade="all, delete-orphan")
 
     def __repr__(self):
         return f'<User {self.username}>'
+
+class AuditLog(db.Model):
+    """ The 'God View' Log Table for Admin Monitoring"""
+    __tablename__ = "audit_log"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    action = db.Column(db.String(100), nullable=False)
+    details = db.Column(db.Text, nullable=True)
+    timestamp = db.Column(db.DateTime, server_default=func.now())
+
+    def to_dict(self):
+        """Helper to convert log to JSON for the Admin Dashboard"""
+        return {
+            "id": self.id,
+            "username": self.user.username,
+            "action": self.action,
+            "details": self.details,
+            "timestamp": self.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        }
 
 class Company(db.Model):
     __tablename__ = "company"

@@ -30,10 +30,10 @@ function Login() {
         body: JSON.stringify({ username, password }),
       })
 
-      const data = await response.json()
-
+      const data = await response.json();
+      console.log("DEBUG: Response from Server:", data); // 🛡️ Look at this in F12 Console
       if (response.ok) {
-        login(data.token, data.username)
+        login(data.token, data.username, data.isAdmin)
         navigate('/') 
       } else {
         setError(data.error || 'Login failed')
