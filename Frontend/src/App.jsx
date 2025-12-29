@@ -9,7 +9,6 @@ import AdminDashboard from './pages/AdminDashboard';
 import Navbar from './components/Navbar'; 
 
 // --- Standard Protected Route ---
-// Prevents guest access to the app
 const ProtectedRoute = ({ children }) => {
   const { token } = useAuth();
   if (!token) {
@@ -19,11 +18,9 @@ const ProtectedRoute = ({ children }) => {
 };
 
 // --- Admin Only Route ---
-// Prevents regular users from accessing Admin Dashboard
 const AdminRoute = ({ children }) => {
   const { token, isAdmin } = useAuth();
   if (!token) return <Navigate to="/login" replace />;
-  // Redirect to home if they are logged in but not an admin
   return isAdmin ? children : <Navigate to="/" replace />;
 };
 
@@ -34,33 +31,36 @@ function AppContent() {
     <div className="min-h-screen bg-slate-900">
       {token && <Navbar />}
 
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        
-        {/* User Protected Routes */}
-        <Route path="/" element={
-          <ProtectedRoute>
-            <Home />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/company/:id" element={
-          <ProtectedRoute>
-            <CompanyPage />
-          </ProtectedRoute>
-        } />
+      {/* 🛠️ Added a wrapper with pt-24 (top padding) to prevent Navbar overlap */}
+      <div className={`${token ? 'pt-24' : ''} transition-all duration-300`}>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          
+          {/* User Protected Routes */}
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/company/:id" element={
+            <ProtectedRoute>
+              <CompanyPage />
+            </ProtectedRoute>
+          } />
 
-        <Route path="/admin" element={
-          <AdminRoute>
-            <AdminDashboard />
-          </AdminRoute>
-        } />
+          <Route path="/admin" element={
+            <AdminRoute>
+              <AdminDashboard />
+            </AdminRoute>
+          } />
 
-        {/* Catch-all Redirect */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          {/* Catch-all Redirect */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
     </div>
   );
 }

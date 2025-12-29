@@ -1,11 +1,13 @@
 import os
 import io
 import uuid
+import csv
 import datetime
 from flask import Flask, request, jsonify, send_file
 from functools import wraps
 from dotenv import load_dotenv
 from db import db
+from flask import Response
 from flask_migrate import Migrate
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
@@ -66,6 +68,27 @@ def admin_required():
             return fn(*args, **kwargs)
         return decorator
     return wrapper
+
+@app.route('/api/admin/export-logs', methods=['GET'])
+@admin_required()
+def export_logs():
+    logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).all()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Timestamp', 'Username', 'Action', 'Details'])
+    for log in logs:
+        writer.writerow([
+            log.timestamp, 
+            log.user.username if log.user else "System", 
+            log.action, 
+            log.details
+        ])
+    output.seek(0)
+    return Response(
+        output,
+        mimetype="text/csv",
+        headers={"Content-disposition": "attachment; filename=system_audit_log.csv"}
+    )
 
 # ==========================================
 #  AUTHENTICATION ENDPOINTS
