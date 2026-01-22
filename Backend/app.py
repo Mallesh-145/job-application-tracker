@@ -173,6 +173,23 @@ def create_company():
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/companies/<int:company_id>', methods=['GET'])
+@jwt_required()
+def get_company_details(company_id):
+    """🔍 Fetch name and details for a single company by ID"""
+    current_user_id = get_jwt_identity()
+    company = Company.query.filter_by(id=company_id, user_id=current_user_id).first()
+    
+    if not company:
+        return jsonify({"error": "Company not found"}), 404
+        
+    return jsonify({
+        "id": company.id,
+        "name": company.name,
+        "address": company.address,
+        "website_url": company.website_url
+    }), 200
+
 @app.route('/api/companies', methods=['GET'])
 @jwt_required()
 def get_companies():
