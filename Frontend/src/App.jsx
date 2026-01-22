@@ -32,7 +32,7 @@ function AppContent() {
       {token && <Navbar />}
 
       {/* 🛠️ Added a wrapper with pt-24 (top padding) to prevent Navbar overlap */}
-      <div className={`${token ? 'pt-20' : ''} transition-all duration-300`}>
+      <div className={`${token ? 'pt-16' : ''} transition-all duration-300`}>
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />

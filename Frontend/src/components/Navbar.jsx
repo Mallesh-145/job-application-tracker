@@ -11,7 +11,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="fixed top-0 w-full z-50 bg-slate-900/80 backdrop-blur-md border-b border-white/10 px-6 py-4">
+    <nav className="fixed top-0 w-full z-50 bg-slate-900/80 border-b border-white/10 px-6 py-4">
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         <Link to="/" className="flex items-center gap-2">
           <span className="text-xl">🚀</span>
@@ -24,7 +24,7 @@ const Navbar = () => {
               to="/admin" 
               className="text-indigo-400 hover:text-indigo-300 text-sm font-bold border border-indigo-400/30 px-3 py-1.5 rounded-xl bg-indigo-400/5 transition-all"
             >
-              🛡️ Admin Panel
+               Admin Panel
             </Link>
           )}
 
