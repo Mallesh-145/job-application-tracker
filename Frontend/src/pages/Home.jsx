@@ -94,12 +94,12 @@ function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900">
-      <main className="max-w-6xl mx-auto mt-12 px-6 pb-12">
+      <main className="max-w-6xl mx-auto mt-4 px-6 pb-12">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-end md:items-center mb-8 gap-4">
           <div>
             <h1 className="text-4xl font-extrabold text-white tracking-tight">
-              My Applications
+              Companies Applied
             </h1>
             <p className="text-indigo-200 mt-2 text-lg font-medium">Track your journey to your dream job.</p>
           </div>

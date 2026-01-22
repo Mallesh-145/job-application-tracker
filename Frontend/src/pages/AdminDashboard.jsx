@@ -105,7 +105,7 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 p-8 pt-24 text-slate-100">
+    <div className="min-h-screen bg-slate-900 p-8 pt-6 text-slate-100">
       <div className="max-w-7xl mx-auto space-y-8">
         
         {/* --- Stats Overview --- */}
