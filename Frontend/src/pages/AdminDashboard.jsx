@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
+import PurgeSuccessModal from '../components/PurgeSuccessModal';
+const API_BASE = import.meta.env.VITE_API_BASE || "https://job-application-tracker-3n97.onrender.com";
 
 const AdminDashboard = () => {
   const { token } = useAuth();
@@ -8,6 +10,10 @@ const AdminDashboard = () => {
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState({ totalUsers: 0, systemActivity: 0 });
   const [loading, setLoading] = useState(true);
+  const [range, setRange] = useState({ start: '', end: '' });
+  const [isPurging, setIsPurging] = useState(false);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [purgeResult, setPurgeResult] = useState({ count: 0, start: '', end: '' });
 
   // --- Data Fetching Logic ---
   const fetchAdminData = async () => {
@@ -16,8 +22,8 @@ const AdminDashboard = () => {
       
       // Parallel fetching for performance
       const [usersRes, logsRes] = await Promise.all([
-        fetch('https://job-application-tracker-3n97.onrender.com/api/admin/users', { headers }),
-        fetch('https://job-application-tracker-3n97.onrender.com/api/admin/logs', { headers })
+        fetch(`${API_BASE}/api/admin/users`, { headers }),
+        fetch(`${API_BASE}/api/admin/logs`, { headers })
       ]);
 
       if (!usersRes.ok || !logsRes.ok) throw new Error("Server error");
@@ -52,7 +58,7 @@ const AdminDashboard = () => {
   const handleExportLogs = async () => {
     try {
       toast.loading("Preparing CSV...", { id: 'export' });
-      const response = await fetch('https://job-application-tracker-3n97.onrender.com/api/admin/export-logs', {
+      const response = await fetch(`${API_BASE}/api/admin/export-logs`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -72,10 +78,63 @@ const AdminDashboard = () => {
     }
   };
 
+    // Feature 1: Export PDF between dates
+  const handleExportPDF = async () => {
+    if (!range.start || !range.end) return toast.error("Please select a date range first");
+    
+    try {
+      toast.loading("Generating PDF Report...", { id: 'pdf' });
+      const response = await fetch(`${API_BASE}/api/admin/logs/pdf?start=${range.start}&end=${range.end}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!response.ok) throw new Error("PDF generation failed");
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Audit_Report_${range.start}_to_${range.end}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      toast.success("PDF Report downloaded!", { id: 'pdf' });
+    } catch (error) {
+      toast.error("PDF Export failed.", { id: 'pdf' });
+    }
+  };
+
+  // Feature 2 & 3: Selective Purge between dates
+  const handlePurgeLogs = async () => {
+    if (!range.start || !range.end) return toast.error("Please select a range");
+
+    if (window.confirm(`⚠️ Permanently delete logs from ${range.start} to ${range.end}?`)) {
+      setIsPurging(true);
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/logs/purge?start=${range.start}&end=${range.end}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          // 🚀 Set the results and open the Modal
+          setPurgeResult({ count: data.count, start: range.start, end: range.end });
+          setIsSuccessModalOpen(true);
+          fetchAdminData(); 
+        }
+      } catch (err) {
+        toast.error("Purge failed");
+      } finally {
+        setIsPurging(false);
+      }
+    }
+  };
+
   const toggleUserStatus = async (userId, currentStatus) => {
     const newStatus = currentStatus === 'active' ? 'disabled' : 'active';
     try {
-      const res = await fetch(`https://job-application-tracker-3n97.onrender.com/api/admin/users/${userId}/status`, {
+      const res = await fetch(`${API_BASE}/api/admin/users/${userId}/status`, {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -113,6 +172,53 @@ const AdminDashboard = () => {
           <StatCard title="Total Users" value={stats.totalUsers} color="from-blue-500 to-indigo-600" />
           <StatCard title="System Activity" value={stats.systemActivity} color="from-purple-500 to-pink-600" />
           <StatCard title="Platform Status" value="Healthy" color="from-emerald-500 to-teal-600" />
+        </div>
+
+        {/* --- Maintenance Control Center --- */}
+        <div className="bg-gradient-to-r from-slate-800 to-indigo-950/30 rounded-2xl border border-white/10 p-6 shadow-2xl">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div>
+              <h2 className="text-xl font-bold flex items-center gap-2">🛠️ Maintenance Control</h2>
+              <p className="text-slate-400 text-sm mt-1">Select a range to archive or securely purge system data.</p>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+              <div className="flex flex-col">
+                <label className="text-[10px] uppercase font-bold text-indigo-400 mb-1">From</label>
+                <input 
+                  type="date" 
+                  value={range.start} 
+                  onChange={(e) => setRange({...range, start: e.target.value})}
+                  className="bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-500 outline-none" 
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-[10px] uppercase font-bold text-indigo-400 mb-1">To</label>
+                <input 
+                  type="date" 
+                  value={range.end} 
+                  onChange={(e) => setRange({...range, end: e.target.value})}
+                  className="bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-500 outline-none" 
+                />
+              </div>
+              
+              <div className="flex gap-2 mt-4 md:mt-0">
+                <button 
+                  onClick={handleExportPDF}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-sm transition-all shadow-lg shadow-indigo-500/20"
+                >
+                  📄 Export PDF
+                </button>
+                <button 
+                  onClick={handlePurgeLogs}
+                  disabled={isPurging}
+                  className="flex items-center gap-2 px-4 py-2 bg-rose-600/20 hover:bg-rose-600 border border-rose-500/50 text-rose-400 hover:text-white rounded-xl font-bold text-sm transition-all disabled:opacity-50"
+                >
+                  {isPurging ? 'Purging...' : '🗑️ Purge Range'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -195,6 +301,11 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
+      <PurgeSuccessModal 
+      isOpen={isSuccessModalOpen} 
+      onClose={() => setIsSuccessModalOpen(false)}
+      stats={purgeResult} 
+      />
     </div>
   );
 };

@@ -1,8 +1,10 @@
+from models import User, Company, JobApplication, Resume, Contact, AuditLog
 import os
 import io
 import uuid
 import csv
 import datetime
+from fpdf import FPDF
 from flask import Flask, request, jsonify, send_file
 from functools import wraps
 from dotenv import load_dotenv
@@ -21,8 +23,7 @@ app = Flask(__name__)
 CORS(app)
 
 # --- Database Configuration ---
-DB_URL = os.getenv("DATABASE_URL", 'postgresql+psycopg2://postgres:mallesh@localhost:5432/Project')
-app.config['SQLALCHEMY_DATABASE_URI'] = DB_URL
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # --- File Upload Config ---
@@ -31,7 +32,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # --- Security Configuration ---
-app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'super-secret-key-change-this-in-prod') 
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(days=7)
 
 # --- Initialize Extensions ---
@@ -41,11 +42,11 @@ bcrypt = Bcrypt(app)
 jwt = JWTManager(app)
 
 # --- Import Models ---
-from models import User, Company, JobApplication, Resume, Contact, AuditLog
 
 # ==========================================
 #  UTILITIES & DECORATORS
 # ==========================================
+
 
 def log_activity(user_id, action, details=None):
     """🛡️ Helper to record every important action in the database"""
@@ -55,6 +56,7 @@ def log_activity(user_id, action, details=None):
         db.session.commit()
     except Exception as e:
         print(f"Logging Error: {e}")
+
 
 def admin_required():
     def wrapper(fn):
@@ -69,6 +71,7 @@ def admin_required():
         return decorator
     return wrapper
 
+
 @app.route('/api/admin/export-logs', methods=['GET'])
 @admin_required()
 def export_logs():
@@ -78,9 +81,9 @@ def export_logs():
     writer.writerow(['Timestamp', 'Username', 'Action', 'Details'])
     for log in logs:
         writer.writerow([
-            log.timestamp, 
-            log.user.username if log.user else "System", 
-            log.action, 
+            log.timestamp,
+            log.user.username if log.user else "System",
+            log.action,
             log.details
         ])
     output.seek(0)
@@ -89,6 +92,86 @@ def export_logs():
         mimetype="text/csv",
         headers={"Content-disposition": "attachment; filename=system_audit_log.csv"}
     )
+
+
+@app.route('/api/admin/logs/pdf', methods=['GET'])
+@admin_required()
+def export_logs_pdf():
+    """📄 Generates a formatted PDF report of audit logs within a date range"""
+    start_str = request.args.get('start')
+    end_str = request.args.get('end')
+
+    query = AuditLog.query
+    if start_str and end_str:
+        start_date = datetime.datetime.strptime(start_str, '%Y-%m-%d')
+        end_date = datetime.datetime.strptime(
+            end_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+        query = query.filter(AuditLog.timestamp >= start_date,
+                             AuditLog.timestamp <= end_date)
+
+    logs = query.order_by(AuditLog.timestamp.desc()).all()
+
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(190, 10, txt="ATS System Audit Report", ln=True, align='C')
+    pdf.set_font("Arial", size=10)
+    pdf.cell(
+        190, 10, txt=f"Generated on: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}", ln=True, align='C')
+    pdf.ln(10)
+
+    # Table Header
+    pdf.set_fill_color(200, 220, 255)
+    pdf.set_font("Arial", 'B', 10)
+    pdf.cell(45, 10, "Timestamp", 1, 0, 'C', True)
+    pdf.cell(35, 10, "Action", 1, 0, 'C', True)
+    pdf.cell(110, 10, "Details", 1, 1, 'C', True)
+
+    # Table Content
+    pdf.set_font("Arial", size=9)
+    for log in logs:
+        pdf.cell(45, 8, str(log.timestamp)[:19], 1)
+        pdf.cell(35, 8, log.action, 1)
+        # Shorten details if they are too long for the cell
+        detail_text = (
+            log.details[:55] + '...') if len(log.details) > 55 else log.details
+        pdf.cell(110, 8, detail_text, 1, 1)
+
+    return Response(
+        pdf.output(dest='S').encode('latin-1'),
+        mimetype='application/pdf',
+        headers={"Content-disposition": "attachment; filename=audit_report.pdf"}
+    )
+
+
+@app.route('/api/admin/logs/purge', methods=['DELETE'])
+@admin_required()
+def purge_logs():
+    """🗑️ Deletes logs within a specific date range"""
+    start_str = request.args.get('start')
+    end_str = request.args.get('end')
+
+    if not start_str or not end_str:
+        return jsonify({"error": "Please select both start and end dates"}), 400
+
+    start_date = datetime.datetime.strptime(start_str, '%Y-%m-%d')
+    end_date = datetime.datetime.strptime(
+        end_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+
+    # Count how many we are about to delete for the confirmation log
+    count = AuditLog.query.filter(
+        AuditLog.timestamp >= start_date, AuditLog.timestamp <= end_date).count()
+
+    AuditLog.query.filter(AuditLog.timestamp >= start_date,
+                          AuditLog.timestamp <= end_date).delete()
+    db.session.commit()
+
+    # 📜 Record that an admin performed a purge
+    log_activity(get_jwt_identity(), "LOGS_PURGED",
+                 f"Admin deleted {count} logs from {start_str} to {end_str}")
+
+    return jsonify({"message": f"Successfully deleted {count} log entries"}), 200
+
 
 # ==========================================
 #  AUTHENTICATION ENDPOINTS
@@ -104,7 +187,8 @@ def register():
     if User.query.filter_by(email=data['email']).first():
         return jsonify({"error": "Email already exists"}), 400
 
-    hashed_password = bcrypt.generate_password_hash(data['password']).decode('utf-8')
+    hashed_password = bcrypt.generate_password_hash(
+        data['password']).decode('utf-8')
     new_user = User(
         username=data['username'],
         email=data['email'],
@@ -115,11 +199,13 @@ def register():
     try:
         db.session.add(new_user)
         db.session.commit()
-        log_activity(new_user.id, "USER_REGISTERED", f"New user signed up: {new_user.username}")
+        log_activity(new_user.id, "USER_REGISTERED",
+                     f"New user signed up: {new_user.username}")
         return jsonify({"message": "User registered successfully"}), 201
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
+
 
 @app.route('/api/auth/login', methods=['POST'])
 def login():
@@ -128,8 +214,9 @@ def login():
     if user and bcrypt.check_password_hash(user.password_hash, data.get('password')):
         if user.status == 'disabled':
             return jsonify({"error": "This account has been deactivated. Contact Admin."}), 403
-        
-        log_activity(user.id, "USER_LOGIN", f"User {user.username} logged in successfully")
+
+        log_activity(user.id, "USER_LOGIN",
+                     f"User {user.username} logged in successfully")
         access_token = create_access_token(identity=str(user.id))
         return jsonify({
             "message": "Login successful",
@@ -138,6 +225,7 @@ def login():
             "isAdmin": user.is_admin
         }), 200
     return jsonify({"error": "Invalid credentials"}), 401
+
 
 @app.route('/api/auth/logout', methods=['POST'])
 @jwt_required()
@@ -150,6 +238,7 @@ def logout_log():
 #  COMPANY ENDPOINTS
 # ==========================================
 
+
 @app.route('/api/companies', methods=['POST'])
 @jwt_required()
 def create_company():
@@ -157,38 +246,42 @@ def create_company():
     data = request.json
     if not data or 'name' not in data:
         return jsonify({"error": "Company name is required"}), 400
-    
+
     new_company = Company(
         name=data['name'],
         address=data.get('address'),
         website_url=data.get('website_url'),
-        user_id=current_user_id 
+        user_id=current_user_id
     )
     try:
         db.session.add(new_company)
         db.session.commit()
-        log_activity(current_user_id, "CREATE_COMPANY", f"Added company: {new_company.name}")
+        log_activity(current_user_id, "CREATE_COMPANY",
+                     f"Added company: {new_company.name}")
         return jsonify({"message": "Company created", "id": new_company.id}), 201
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
+
 
 @app.route('/api/companies/<int:company_id>', methods=['GET'])
 @jwt_required()
 def get_company_details(company_id):
     """🔍 Fetch name and details for a single company by ID"""
     current_user_id = get_jwt_identity()
-    company = Company.query.filter_by(id=company_id, user_id=current_user_id).first()
-    
+    company = Company.query.filter_by(
+        id=company_id, user_id=current_user_id).first()
+
     if not company:
         return jsonify({"error": "Company not found"}), 404
-        
+
     return jsonify({
         "id": company.id,
         "name": company.name,
         "address": company.address,
         "website_url": company.website_url
     }), 200
+
 
 @app.route('/api/companies', methods=['GET'])
 @jwt_required()
@@ -197,46 +290,57 @@ def get_companies():
     companies = Company.query.filter_by(user_id=current_user_id).all()
     return jsonify([{"id": c.id, "name": c.name, "address": c.address, "website_url": c.website_url} for c in companies]), 200
 
+
 @app.route('/api/companies/<int:company_id>', methods=['PUT'])
 @jwt_required()
 def update_company(company_id):
     current_user_id = get_jwt_identity()
-    company = Company.query.filter_by(id=company_id, user_id=current_user_id).first()
-    if not company: return jsonify({"error": "Company not found"}), 404
-    
+    company = Company.query.filter_by(
+        id=company_id, user_id=current_user_id).first()
+    if not company:
+        return jsonify({"error": "Company not found"}), 404
+
     data = request.json
     company.name = data.get('name', company.name)
     company.address = data.get('address', company.address)
     company.website_url = data.get('website_url', company.website_url)
-    
+
     db.session.commit()
-    log_activity(current_user_id, "UPDATE_COMPANY", f"Updated details for: {company.name}")
+    log_activity(current_user_id, "UPDATE_COMPANY",
+                 f"Updated details for: {company.name}")
     return jsonify({"message": "Company updated"}), 200
+
 
 @app.route('/api/companies/<int:company_id>', methods=['DELETE'])
 @jwt_required()
 def delete_company(company_id):
     current_user_id = get_jwt_identity()
-    company = Company.query.filter_by(id=company_id, user_id=current_user_id).first()
-    if not company: return jsonify({"error": "Company not found"}), 404
-    
-    comp_name = company.name # Store name before deleting
+    company = Company.query.filter_by(
+        id=company_id, user_id=current_user_id).first()
+    if not company:
+        return jsonify({"error": "Company not found"}), 404
+
+    comp_name = company.name  # Store name before deleting
     db.session.delete(company)
     db.session.commit()
-    log_activity(current_user_id, "DELETE_COMPANY", f"Deleted company: {comp_name}")
+    log_activity(current_user_id, "DELETE_COMPANY",
+                 f"Deleted company: {comp_name}")
     return jsonify({"message": "Company deleted"}), 200
 
 # ==========================================
 #  JOB APPLICATION ENDPOINTS
 # ==========================================
 
+
 @app.route('/api/applications', methods=['POST'])
 @jwt_required()
 def create_application():
     current_user_id = get_jwt_identity()
     data = request.json
-    company = Company.query.filter_by(id=data['company_id'], user_id=current_user_id).first()
-    if not company: return jsonify({"error": "Company not found"}), 404
+    company = Company.query.filter_by(
+        id=data['company_id'], user_id=current_user_id).first()
+    if not company:
+        return jsonify({"error": "Company not found"}), 404
 
     new_app = JobApplication(
         job_title=data['job_title'],
@@ -248,20 +352,25 @@ def create_application():
     )
     db.session.add(new_app)
     db.session.commit()
-    log_activity(current_user_id, "CREATE_APP", f"Applied for {new_app.job_title} at {company.name}")
+    log_activity(current_user_id, "CREATE_APP",
+                 f"Applied for {new_app.job_title} at {company.name}")
     return jsonify({"message": "Application created", "id": new_app.id}), 201
+
 
 @app.route('/api/companies/<int:company_id>/applications', methods=['GET'])
 @jwt_required()
 def get_applications(company_id):
     current_user_id = get_jwt_identity()
-    company = Company.query.filter_by(id=company_id, user_id=current_user_id).first()
-    if not company: return jsonify({"error": "Company not found"}), 404
+    company = Company.query.filter_by(
+        id=company_id, user_id=current_user_id).first()
+    if not company:
+        return jsonify({"error": "Company not found"}), 404
     apps_list = [{
         "id": a.id, "job_title": a.job_title, "status": a.status,
         "application_date": a.application_date, "notes": a.notes, "job_url": a.job_url
     } for a in company.applications]
     return jsonify(apps_list), 200
+
 
 @app.route('/api/applications/<int:app_id>', methods=['PUT'])
 @jwt_required()
@@ -270,17 +379,21 @@ def update_application(app_id):
     application = JobApplication.query.join(Company).filter(
         JobApplication.id == app_id, Company.user_id == current_user_id
     ).first()
-    if not application: return jsonify({"error": "Application not found"}), 404
-    
+    if not application:
+        return jsonify({"error": "Application not found"}), 404
+
     data = request.json
     application.job_title = data.get('job_title', application.job_title)
     application.status = data.get('status', application.status)
-    application.application_date = data.get('application_date', application.application_date)
+    application.application_date = data.get(
+        'application_date', application.application_date)
     application.notes = data.get('notes', application.notes)
-    
+
     db.session.commit()
-    log_activity(current_user_id, "UPDATE_APP", f"Updated status of {application.job_title} to {application.status}")
+    log_activity(current_user_id, "UPDATE_APP",
+                 f"Updated status of {application.job_title} to {application.status}")
     return jsonify({"message": "Updated"}), 200
+
 
 @app.route('/api/applications/<int:app_id>', methods=['DELETE'])
 @jwt_required()
@@ -289,17 +402,20 @@ def delete_application(app_id):
     application = JobApplication.query.join(Company).filter(
         JobApplication.id == app_id, Company.user_id == current_user_id
     ).first()
-    if not application: return jsonify({"error": "Application not found"}), 404
-    
+    if not application:
+        return jsonify({"error": "Application not found"}), 404
+
     app_title = application.job_title
     db.session.delete(application)
     db.session.commit()
-    log_activity(current_user_id, "DELETE_APP", f"Removed application for {app_title}")
+    log_activity(current_user_id, "DELETE_APP",
+                 f"Removed application for {app_title}")
     return jsonify({"message": "Deleted"}), 200
 
 # ==========================================
 #  RESUME ENDPOINTS
 # ==========================================
+
 
 @app.route('/api/applications/<int:app_id>/resumes', methods=['POST'])
 @jwt_required()
@@ -308,30 +424,37 @@ def upload_resume(app_id):
     application = JobApplication.query.join(Company).filter(
         JobApplication.id == app_id, Company.user_id == current_user_id
     ).first()
-    if not application: return jsonify({"error": "Application not found"}), 404
-    
+    if not application:
+        return jsonify({"error": "Application not found"}), 404
+
     file = request.files.get('file')
     if file and file.filename != '':
         filename = secure_filename(file.filename)
         name, ext = os.path.splitext(filename)
         version = len(application.resumes)+1
         unique_name = f"{name}_v{version}{ext}"
-        new_resume = Resume(filename=unique_name, data=file.read(), application_id=app_id)
+        new_resume = Resume(filename=unique_name,
+                            data=file.read(), application_id=app_id)
         db.session.add(new_resume)
         db.session.commit()
-        log_activity(current_user_id, "UPLOAD_RESUME", f"Uploaded resume: {filename} for {application.job_title}")
+        log_activity(current_user_id, "UPLOAD_RESUME",
+                     f"Uploaded resume: {filename} for {application.job_title}")
         return jsonify({"message": "Uploaded"}), 201
     return jsonify({"error": "No file"}), 400
+
 
 @app.route('/api/applications/<int:app_id>/resumes', methods=['GET'])
 @jwt_required()
 def get_resumes(app_id):
     current_user_id = get_jwt_identity()
-    application = JobApplication.query.join(Company).filter( JobApplication.id == app_id, Company.user_id == current_user_id).first()
-    if not application: return jsonify({"error": "Not found"}), 404
+    application = JobApplication.query.join(Company).filter(
+        JobApplication.id == app_id, Company.user_id == current_user_id).first()
+    if not application:
+        return jsonify({"error": "Not found"}), 404
     return jsonify([{
         "id": r.id, "filename": r.filename, "upload_date": r.upload_date
     } for r in application.resumes]), 200
+
 
 @app.route('/api/resumes/<int:resume_id>', methods=['DELETE'])
 @jwt_required()
@@ -340,18 +463,22 @@ def delete_resume(resume_id):
     resume = Resume.query.join(JobApplication).join(Company).filter(
         Resume.id == resume_id, Company.user_id == current_user_id
     ).first()
-    if not resume: return jsonify({"error": "Not found"}), 404
-    
+    if not resume:
+        return jsonify({"error": "Not found"}), 404
+
     res_name = resume.filename
     db.session.delete(resume)
     db.session.commit()
-    log_activity(current_user_id, "DELETE_RESUME", f"Deleted resume: {res_name}")
+    log_activity(current_user_id, "DELETE_RESUME",
+                 f"Deleted resume: {res_name}")
     return jsonify({"message": "Deleted"}), 200
+
 
 @app.route('/api/resumes/<int:resume_id>/download', methods=['GET'])
 def download_resume(resume_id):
     resume = Resume.query.get(resume_id)
-    if not resume: return jsonify({"error": "Not found"}), 404
+    if not resume:
+        return jsonify({"error": "Not found"}), 404
     mimetype = 'application/pdf' if resume.filename.lower().endswith('.pdf') else 'application/octet-stream'
     return send_file(io.BytesIO(resume.data), mimetype=mimetype, download_name=resume.filename, as_attachment=False)
 
@@ -359,26 +486,28 @@ def download_resume(resume_id):
 #  CONTACT ENDPOINTS (Protected)
 # ==========================================
 
+
 @app.route('/api/contacts', methods=['POST'])
 @jwt_required()
 def create_contact():
     current_user_id = get_jwt_identity()
-    data = request.json    
-    company = Company.query.filter_by(id=data['company_id'], user_id=current_user_id).first()
-    if not company: 
+    data = request.json
+    company = Company.query.filter_by(
+        id=data['company_id'], user_id=current_user_id).first()
+    if not company:
         return jsonify({"error": "Company not found or access denied"}), 404
     new_contact = Contact(
-        name=data['name'], 
-        email=data.get('email'), 
-        phone=data.get('phone'), 
+        name=data['name'],
+        email=data.get('email'),
+        phone=data.get('phone'),
         company_id=data['company_id']
     )
     try:
         db.session.add(new_contact)
-        db.session.commit()        
+        db.session.commit()
         log_activity(
-            current_user_id, 
-            "CREATE_CONTACT", 
+            current_user_id,
+            "CREATE_CONTACT",
             f"Added contact {new_contact.name} for company {company.name}"
         )
         return jsonify({"message": "Contact created"}), 201
@@ -386,57 +515,64 @@ def create_contact():
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
+
 @app.route('/api/companies/<int:company_id>/contacts', methods=['GET'])
 @jwt_required()
 def get_contacts(company_id):
-    current_user_id = get_jwt_identity()    
-    company = Company.query.filter_by(id=company_id, user_id=current_user_id).first()
-    if not company: 
-        return jsonify({"error": "Not found"}), 404 
+    current_user_id = get_jwt_identity()
+    company = Company.query.filter_by(
+        id=company_id, user_id=current_user_id).first()
+    if not company:
+        return jsonify({"error": "Not found"}), 404
     return jsonify([{
-        "id": c.id, 
-        "name": c.name, 
-        "email": c.email, 
+        "id": c.id,
+        "name": c.name,
+        "email": c.email,
         "phone": c.phone
     } for c in company.contacts]), 200
+
 
 @app.route('/api/contacts/<int:contact_id>', methods=['PUT'])
 @jwt_required()
 def update_contact(contact_id):
-    current_user_id = get_jwt_identity()    
+    current_user_id = get_jwt_identity()
     contact = Contact.query.join(Company).filter(
-        Contact.id == contact_id, 
+        Contact.id == contact_id,
         Company.user_id == current_user_id
     ).first()
-    if not contact: 
+    if not contact:
         return jsonify({"error": "Contact not found"}), 404
     data = request.json
     contact.name = data.get('name', contact.name)
     contact.email = data.get('email', contact.email)
     contact.phone = data.get('phone', contact.phone)
-    db.session.commit()    
-    log_activity(current_user_id, "UPDATE_CONTACT", f"Updated contact info for {contact.name}")
+    db.session.commit()
+    log_activity(current_user_id, "UPDATE_CONTACT",
+                 f"Updated contact info for {contact.name}")
     return jsonify({"message": "Updated"}), 200
+
 
 @app.route('/api/contacts/<int:contact_id>', methods=['DELETE'])
 @jwt_required()
 def delete_contact(contact_id):
     current_user_id = get_jwt_identity()
     contact = Contact.query.join(Company).filter(
-        Contact.id == contact_id, 
+        Contact.id == contact_id,
         Company.user_id == current_user_id
     ).first()
-    if not contact: 
+    if not contact:
         return jsonify({"error": "Contact not found"}), 404
-    contact_name = contact.name # Save name for log
+    contact_name = contact.name  # Save name for log
     db.session.delete(contact)
     db.session.commit()
-    log_activity(current_user_id, "DELETE_CONTACT", f"Removed contact: {contact_name}")
+    log_activity(current_user_id, "DELETE_CONTACT",
+                 f"Removed contact: {contact_name}")
     return jsonify({"message": "Deleted"}), 200
 
 # ==========================================
 #  ADMIN ENDPOINTS
 # ==========================================
+
 
 @app.route('/api/admin/users', methods=['GET'])
 @admin_required()
@@ -446,25 +582,31 @@ def get_all_users():
         "id": u.id, "username": u.username, "email": u.email, "status": u.status, "is_admin": u.is_admin
     } for u in users]), 200
 
+
 @app.route('/api/admin/logs', methods=['GET'])
 @admin_required()
 def get_all_logs():
     logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).all()
     return jsonify([log.to_dict() for log in logs]), 200
 
+
 @app.route('/api/admin/users/<int:user_id>/status', methods=['POST'])
 @admin_required()
 def toggle_user_status(user_id):
     data = request.json
     user = User.query.get(user_id)
-    if not user: return jsonify({"error": "User not found"}), 404
-    if user.is_admin: return jsonify({"error": "Cannot disable an admin"}), 400
-    
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    if user.is_admin:
+        return jsonify({"error": "Cannot disable an admin"}), 400
+
     user.status = data.get('status', user.status)
     db.session.commit()
     current_admin_id = get_jwt_identity()
-    log_activity(current_admin_id, "ADMIN_ACTION", f"Changed status of {user.username} to {user.status}")
+    log_activity(current_admin_id, "ADMIN_ACTION",
+                 f"Changed status of {user.username} to {user.status}")
     return jsonify({"message": f"User status updated to {user.status}"}), 200
+
 
 if __name__ == '__main__':
     app.run(debug=True)
