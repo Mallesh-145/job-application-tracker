@@ -13,6 +13,7 @@ const AdminDashboard = () => {
   const [range, setRange] = useState({ start: '', end: '' });
   const [isPurging, setIsPurging] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [purgeResult, setPurgeResult] = useState({ count: 0, start: '', end: '' });
 
   // --- Data Fetching Logic ---
@@ -49,7 +50,6 @@ const AdminDashboard = () => {
   useEffect(() => {
     fetchAdminData();
     
-    // 🔄 AUTO-POLLING: Refresh data every 60 seconds for "Live" feel
     const interval = setInterval(fetchAdminData, 60000); 
     return () => clearInterval(interval);
   }, [token]);
@@ -105,29 +105,30 @@ const AdminDashboard = () => {
   };
 
   // Feature 2 & 3: Selective Purge between dates
-  const handlePurgeLogs = async () => {
-    if (!range.start || !range.end) return toast.error("Please select a range");
+ // This only triggers the modal
+  const triggerPurgeConfirmation = () => {
+    if (!range.start || !range.end) return toast.error("Select range to purge");
+    setIsConfirmModalOpen(true);
+  };
 
-    if (window.confirm(`⚠️ Permanently delete logs from ${range.start} to ${range.end}?`)) {
-      setIsPurging(true);
-      try {
-        const res = await fetch(`${API_BASE}/api/admin/logs/purge?start=${range.start}&end=${range.end}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          // 🚀 Set the results and open the Modal
-          setPurgeResult({ count: data.count, start: range.start, end: range.end });
-          setIsSuccessModalOpen(true);
-          fetchAdminData(); 
-        }
-      } catch (err) {
-        toast.error("Purge failed");
-      } finally {
-        setIsPurging(false);
+  const executePurge = async () => {
+    setIsConfirmModalOpen(false); 
+    setIsPurging(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/logs/purge?start=${range.start}&end=${range.end}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPurgeResult({ count: data.count, start: range.start, end: range.end });
+        setIsSuccessModalOpen(true); 
+        fetchAdminData();
       }
+    } catch (err) {
+      toast.error("Purge failed");
+    } finally {
+      setIsPurging(false);
     }
   };
 
@@ -210,7 +211,7 @@ const AdminDashboard = () => {
                   📄 Export PDF
                 </button>
                 <button 
-                  onClick={handlePurgeLogs}
+                  onClick={triggerPurgeConfirmation}
                   disabled={isPurging}
                   className="flex items-center gap-2 px-4 py-2 bg-rose-600/20 hover:bg-rose-600 border border-rose-500/50 text-rose-400 hover:text-white rounded-xl font-bold text-sm transition-all disabled:opacity-50"
                 >
@@ -301,10 +302,16 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
+      <PurgeConfirmModal 
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={executePurge}
+        range={range}
+      />
       <PurgeSuccessModal 
-      isOpen={isSuccessModalOpen} 
-      onClose={() => setIsSuccessModalOpen(false)}
-      stats={purgeResult} 
+        isOpen={isSuccessModalOpen} 
+        onClose={() => setIsSuccessModalOpen(false)}
+        stats={purgeResult} 
       />
     </div>
   );
