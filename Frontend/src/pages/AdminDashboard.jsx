@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
+import PurgeConfirmModal from '../components/PurgeConfirmModal';
 import PurgeSuccessModal from '../components/PurgeSuccessModal';
 const API_BASE = import.meta.env.VITE_API_BASE || "https://job-application-tracker-3n97.onrender.com";
 
